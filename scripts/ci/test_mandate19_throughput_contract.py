@@ -63,8 +63,12 @@ def test_frontend_hpa_packs_existing_nodes_and_has_replica_headroom():
     assert "maxReplicas: 16" in block
     assert "averageUtilization: 65" in block
     assert "staged PR" in block and "capacity step" in block
-    # Giữ ràng buộc: bước này chỉ nới replica, không được lặng lẽ đổi target.
-    assert "minReplicas: 2" in block
+    # REL-21 (Mandate-21): minReplicas 2 -> 3. topologySpread zone chỉ áp LÚC SCHEDULE;
+    # HPA scale-down không rebalance nên với min=2 một lần co xuống dồn cả 2 replica vào
+    # 1 AZ (đo 30/07: frontend 2/2 ở 1c) -> mất AZ đó là storefront sập. Elastic chỉ ở
+    # 1a+1c nên min=3 + maxSkew=1 luôn rải 2+1, mất AZ nào cũng còn >=1 replica. Guard
+    # target 65% + maxReplicas vẫn giữ (test riêng); chỉ min đổi có chủ đích cho AZ-spread.
+    assert "minReplicas: 3" in block
 
 
 def test_hotpath_replica_caps_match_measured_capacity_step():
