@@ -47,7 +47,7 @@ Dừng. Để mentor hỏi.
 > Directive #19 đòi *"không thêm node"* — bài đo mà số node thay đổi thì không dùng làm gốc so sánh
 > được, bất kể con số bao nhiêu. Em không nói bài cũ sai; nó trả lời **câu hỏi khác**.
 
-📄 `docs/mandate-19-bao-cao-tom-tat.md` §1
+📄 `docs/mandate-19-nghiem-thu.md` §1
 
 ---
 
@@ -62,21 +62,43 @@ Trả lời theo **đúng thứ tự này**, đừng đảo:
 > chế độ hoạt động**: trước đây traffic dồn vào 2/11 pod, giờ trải đều 11 pod. Nhưng `minReplicas`,
 > ngưỡng HPA 65%, hạn chờ 1200ms **vẫn là bộ tham số hiệu chỉnh cho chế độ cũ**.
 >
-> Em có bằng chứng đây là **nợ hiệu chỉnh chứ không phải hết năng lực**: lỗi không rải đều mà dồn
-> thành cụm ~8 giây, và mỗi cụm rơi vào **ngay trước một lần HPA scale-up** — `09:22:27→35` rồi
-> scale lúc `09:22:56`; `09:28:51→58` rồi scale `09:29:11`. Hệ **đang tự cứu**, chỉ chậm hơn cửa sổ
-> đo. Đó là bài toán chỉnh tham số, không phải bài toán thiếu máy.
+> Cổng trượt **chỉ có một**: `browse_success`. cart, checkout và browse p95 đều qua — p95 là
+> **389,7ms** so với ngưỡng 1000ms, dư 2,6 lần biên. Không phải bài toán tốc độ.
+>
+> Và em xác định được **hệ không hết sức, nó bị gián đoạn**. Lỗi không rải đều mà dồn thành cụm
+> ngắn rồi tự tắt, trong khi tài nguyên còn thừa: lúc 1000 user thì `product-catalog` chỉ ở
+> **61%/65%** với 8/12 pod, `frontend` 79%/65% với 10/16 pod.
+>
+> Nguyên nhân là **bản vá của em còn thiếu một mảnh**: `round_robin` được ship mà không kèm
+> `retryPolicy`. Với `pick_first` thì một pod bị thay chỉ ảnh hưởng client ghim vào nó; với
+> `round_robin` thì **mọi** client đều dính một phần. Mà `dns_min_time_between_resolutions_ms`
+> đang là 5000, nên sau khi một pod biến mất client còn gửi vào địa chỉ chết tới 5 giây —
+> **khớp đúng cụm lỗi 8 giây** đo được. Không có retry thì mỗi lần như vậy là 500 tới thẳng người dùng.
+
+⚠️ **Nếu mentor hỏi ngược: "vậy trần MỚI của em là bao nhiêu?"** — trả lời thẳng, đừng né:
+
+> Theo đúng thước đo directive thì bản tối ưu có trần **u200**, tức **thấp hơn** baseline u1000.
+> Em không giấu con số này. Nó thấp vì browse dính ~1% lỗi ở gần như mọi mức tải do đúng cái
+> thiếu `retryPolicy` em vừa nói. Nhưng ở nơi quan trọng nhất thì bản mới khoẻ hơn hẳn: ở 1800
+> user checkout đi từ **7,12% lên 99,18%** và throughput từ 298 lên 356 RPS.
 
 **Nếu mentor gặng "vậy sao không chỉnh luôn rồi đo lại?"**
 
-> Em ước tính **~1,5 giờ** và **~65–70% khả năng qua** — em không dám nói 100%. Nếu trượt thì nguyên
-> nhân gần như chắc chắn là tầng elastic hết chỗ, và lối ra không nằm ở phần mềm nữa.
+> **~2,5–3 giờ**, và em không dám nói chắc: **~55%** nếu chỉ thêm `retryPolicy` và giảm churn;
+> **~70%** nếu nới được `product-reviews` — nó đang là service cấp hẹp nhất hot path
+> (`maxReplicas` 6 trong khi frontend 16, catalog 12) và sinh **73–81% lỗi browse** ở tải cao;
+> **~85%** nếu CDO01 đồng ý mở 4 node `t3.large` cho hot path. Qua được 1800 user thì **dưới 25%**
+> nếu không mở node — lúc đó `frontend` đã **16/16 kịch trần ở 142% CPU**.
+>
+> Kế hoạch chi tiết em viết sẵn ở `docs/mandate-19-ke-hoach-yc2.md`, có cả việc phải làm TRƯỚC là
+> chẩn đoán 503 của `product-reviews` — vì nếu nó đến từ cạn connection pool thì thêm replica còn
+> **làm tệ hơn**.
 
 ⚠️ **Đừng dùng lý do "thước đo không công bằng" để xin điểm.** Có thể nêu (checkout 7,12% → 99,18%
 vẫn tính 0 điểm) nhưng phải kèm ngay: *"Em nêu cho đủ hai mặt, không dùng để đòi PASS. Cổng là cổng,
 em báo là chưa qua."*
 
-📄 `docs/mandate-19-bao-cao-tom-tat.md` §5
+📄 `docs/mandate-19-nghiem-thu.md` §5
 
 ---
 
@@ -108,7 +130,7 @@ em báo là chưa qua."*
 >
 > Chỉ tạo headless mà quên `round_robin` thì DNS trả 11 IP xong client vẫn ghim vào IP đầu — y hệt cũ.
 
-📄 `docs/mandate-19-bao-cao-tom-tat.md` §3 · `gitops/infrastructure/backend-headless-services.yaml` ·
+📄 `docs/mandate-19-nghiem-thu.md` §3 · `gitops/infrastructure/backend-headless-services.yaml` ·
 `src/frontend/gateways/rpc/grpcChannel.ts`
 
 ---
@@ -316,7 +338,7 @@ Nói thẳng, đừng vòng vo:
 
 | Cần chứng minh | Mở file |
 |---|---|
-| Trần 1000u / 202,4 RPS | `docs/mandate-19-bao-cao-tom-tat.md` §2 |
+| Trần 1000u / 202,4 RPS | `docs/mandate-19-nghiem-thu.md` §2 |
 | Không thêm node | `.../shed-demo/frames/02-dang-overload.png` (`Node count Mean 9 / Max 9`) |
 | Nút thắt `email` | báo cáo §3.1 |
 | Connection pinning `353m·136m·11m·1m×8` | `.../roundrobin-proof/before-after.txt` |

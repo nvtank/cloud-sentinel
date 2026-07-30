@@ -26,7 +26,7 @@
 
 | File | Nội dung | Khi nào đọc |
 |---|---|---|
-| **`mandate-19-bao-cao-tom-tat.md`** ← *bạn đang ở đây* | Báo cáo có ảnh + video nhúng | **Đọc đầu tiên** |
+| **`mandate-19-nghiem-thu.md`** ← *bạn đang ở đây* | Báo cáo có ảnh + video nhúng | **Đọc đầu tiên** |
 | [`mandate-19-throughput-ceiling-report.md`](mandate-19-throughput-ceiling-report.md) | Báo cáo đầy đủ, mọi bảng số chi tiết | Khi cần kiểm tra sâu một con số |
 | [`adr/0011-mandate-19-throughput-ceiling-load-shedding.md`](adr/0011-mandate-19-throughput-ceiling-load-shedding.md) | **ADR ký tên** — quyết định và đánh đổi | Khi hỏi *"vì sao chọn cách này"* |
 | [`mandate-19-ke-hoach-yc2.md`](mandate-19-ke-hoach-yc2.md) | Kế hoạch đóng nốt YC#2 — 5 việc, lịch, xác suất | Khi hỏi *"còn thiếu gì, bao lâu"* |
