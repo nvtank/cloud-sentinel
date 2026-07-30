@@ -1,22 +1,68 @@
-# Mandate #19 — Báo cáo tóm tắt (bản dễ đọc)
+# Mandate #19 — HỒ SƠ NỘP
 
-**Ngày đo:** 30/07/2026 · **Người thực hiện:** CDO01 — TF3
-**Bản đầy đủ:** [`mandate-19-throughput-ceiling-report.md`](mandate-19-throughput-ceiling-report.md) ·
-**ADR ký tên:** [`adr/0011-...`](adr/0011-mandate-19-throughput-ceiling-load-shedding.md) ·
-**Evidence thô:** [`evidence/mandate-19/real-2026-07-30/`](evidence/mandate-19/real-2026-07-30/)
+**Biết trần của mình — và nâng trần bằng hiệu suất**
 
-> Bản này dành cho người đọc lần đầu. Mỗi con số đều có ảnh hoặc file thô đi kèm, bấm vào xem được.
+**Ngày đo:** 30/07/2026 · **Người thực hiện:** CDO01 — TF3 · **Trạng thái: 3/4 yêu cầu đạt**
+
+> 📌 **Đây là file đầu mối của cả hồ sơ.** Bắt đầu đọc từ đây. Mỗi con số bên dưới đều có ảnh
+> hoặc file thô đi kèm, bấm vào là xem được.
 
 ---
 
 ## Directive hỏi gì, chúng tôi trả lời được gì
 
-| Câu hỏi của Directive | Trả lời | Trạng thái |
+| # | Câu hỏi của Directive | Trả lời | |
+|---|---|---|---|
+| 1 | Trần thật của hệ là bao nhiêu? | **1000 user đồng thời · 202,4 RPS** | ✅ |
+| 2 | Nâng trần được không mà **không thêm node**? | Phục vụ **+29% request** trên **cùng 9 node** — nhưng cổng SLO 4/4 chưa qua. [Giải thích đầy đủ](#vì-sao-cổng-44-vẫn-chưa-qua--giải-thích-đầy-đủ) · [kế hoạch đóng](mandate-19-ke-hoach-yc2.md) | 🟡 |
+| 3 | Service nào bão hoà sớm nhất? | **`email`** — nghẽn **hàng đợi**, không phải CPU | ✅ |
+| 4 | Vượt trần thì gục hay xuống mềm? | **Xuống mềm** — hy sinh 104.264 request browse, giữ luồng tiền **99,95%** | ✅ |
+
+---
+
+## 📁 Mục lục hồ sơ — mở file nào khi cần gì
+
+### Tài liệu
+
+| File | Nội dung | Khi nào đọc |
 |---|---|---|
-| Trần thật của hệ là bao nhiêu? | **1000 user đồng thời · 202,4 RPS** | ✅ |
-| Nâng trần được không mà **không thêm node**? | Phục vụ **+29% request** trên **cùng 9 node** — nhưng cổng SLO 4/4 chưa qua | 🟡 |
-| Service nào bão hoà sớm nhất? | **`email`** — nghẽn **hàng đợi**, không phải CPU | ✅ |
-| Vượt trần thì gục hay xuống mềm? | **Xuống mềm** — hy sinh 104.264 request browse, giữ luồng tiền **99,95%** | ✅ |
+| **`mandate-19-bao-cao-tom-tat.md`** ← *bạn đang ở đây* | Báo cáo có ảnh + video nhúng | **Đọc đầu tiên** |
+| [`mandate-19-throughput-ceiling-report.md`](mandate-19-throughput-ceiling-report.md) | Báo cáo đầy đủ, mọi bảng số chi tiết | Khi cần kiểm tra sâu một con số |
+| [`adr/0011-mandate-19-throughput-ceiling-load-shedding.md`](adr/0011-mandate-19-throughput-ceiling-load-shedding.md) | **ADR ký tên** — quyết định và đánh đổi | Khi hỏi *"vì sao chọn cách này"* |
+| [`mandate-19-ke-hoach-yc2.md`](mandate-19-ke-hoach-yc2.md) | Kế hoạch đóng nốt YC#2 — 5 việc, lịch, xác suất | Khi hỏi *"còn thiếu gì, bao lâu"* |
+| [`postmortem/0017-...md`](postmortem/0017-product-catalog-replicas-zero-hpa-cannot-recover.md) | Sự cố 42 phút gặp trong lúc làm | Khi hỏi về sự cố hôm 30/07 |
+
+### Bằng chứng — 📂 [`evidence/mandate-19/real-2026-07-30/`](evidence/mandate-19/real-2026-07-30/)
+
+| Thư mục / File | Bên trong có gì |
+|---|---|
+| 📂 [`baseline/`](evidence/mandate-19/real-2026-07-30/baseline/) | **8 stage đo trần gốc** (u200→u2400). Mỗi stage: ảnh Grafana, CSV Locust, `sli.json`, `infra.txt` (số node + hash tập node), `window.txt` (cửa sổ đo chính xác) |
+| 📂 [`tuned/`](evidence/mandate-19/real-2026-07-30/tuned/) · [`tuned2/`](evidence/mandate-19/real-2026-07-30/tuned2/) · [`tuned3/`](evidence/mandate-19/real-2026-07-30/tuned3/) | 3 vòng tối ưu tiếp theo, cùng cấu trúc |
+| 📄 [`baseline-client-truth.json`](evidence/mandate-19/real-2026-07-30/baseline-client-truth.json) *(và `tuned*-client-truth.json`)* | **Con số chốt** — throughput và tỉ lệ thành công tính từ CSV Locust |
+| 📂 [`shed-demo/`](evidence/mandate-19/real-2026-07-30/shed-demo/) | **Demo YC#4**: [video MP4](evidence/mandate-19/real-2026-07-30/shed-demo/timelapse.mp4) · [GIF](evidence/mandate-19/real-2026-07-30/shed-demo/timelapse.gif) · [`probe.txt`](evidence/mandate-19/real-2026-07-30/shed-demo/probe.txt) · [`counters.txt`](evidence/mandate-19/real-2026-07-30/shed-demo/counters.txt) · [README](evidence/mandate-19/real-2026-07-30/shed-demo/README.md) |
+| 📂 [`tuned3-ceiling-video/`](evidence/mandate-19/real-2026-07-30/tuned3-ceiling-video/) | Video vùng trần sau khi tối ưu |
+| 📂 [`roundrobin-proof/`](evidence/mandate-19/real-2026-07-30/roundrobin-proof/) | [`before-after.txt`](evidence/mandate-19/real-2026-07-30/roundrobin-proof/before-after.txt) — CPU từng pod trước/sau khi sửa ghim kết nối |
+| 📄 [`ceiling-root-cause.txt`](evidence/mandate-19/real-2026-07-30/ceiling-root-cause.txt) | Snapshot lúc chạm trần: lý do scheduler từ chối + CPU từng node |
+
+### Công cụ đo — 📂 [`scripts/mandate-19/`](../scripts/mandate-19/README.md)
+
+| File | Việc |
+|---|---|
+| `run_stage_external.sh` | Chạy 1 stage, generator **ngoài cluster** qua CloudFront, ép cửa sổ đo ≥300s |
+| `client_truth.py` | Tính throughput từ CSV Locust — **không** qua span pipeline |
+| `shed_demo.sh` | Demo YC#4 bằng **một lệnh**, tự quay video |
+| `timelapse.sh` · `capture_stage.sh` | Chụp Grafana đúng cửa sổ đo, ghép MP4/GIF |
+
+### Thay đổi mã nguồn
+
+| PR | Nội dung |
+|---|---|
+| #649 | Nới `maxReplicas` hot path · sửa SLI checkout bị mù |
+| #656 | Right-size CPU theo số đo thật · HPA cho `email` |
+| #658 | **Hiệu chỉnh lại ngân sách shed** sau khi phát hiện tự phá cơ chế |
+| #660 · #664 | **Service headless + `round_robin`** — sửa ghim kết nối gRPC |
+| #662 | Báo cáo đầy đủ + ADR 0011 |
+| #671 | Hồ sơ nộp này |
 
 ---
 
