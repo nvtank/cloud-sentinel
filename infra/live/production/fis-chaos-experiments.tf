@@ -60,6 +60,16 @@ data "aws_subnet" "fis_target" {
     name   = "tag:Name"
     values = [local.fis_private_subnet_name]
   }
+
+  # Cái tên trên tag KHÔNG phải là bằng chứng subnet nằm ở AZ nào — tag do người đặt,
+  # AZ do AWS quyết. Khớp lại hai thứ ngay ở bước plan để một subnet bị đặt tên sai
+  # không thể lặng lẽ trở thành mục tiêu của bài chaos.
+  lifecycle {
+    postcondition {
+      condition     = self.availability_zone == var.fis_target_az
+      error_message = "Subnet ${self.id} tên '${local.fis_private_subnet_name}' nhưng thực tế nằm ở AZ ${self.availability_zone}, không phải ${var.fis_target_az}."
+    }
+  }
 }
 
 data "aws_lb" "fis_stop_condition_source" {
