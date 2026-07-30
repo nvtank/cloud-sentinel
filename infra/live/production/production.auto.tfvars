@@ -15,6 +15,10 @@ cloudflare_allowed_emails = [
   "hiimtuu@gmail.com",
   "tutc.work@gmail.com",
   "trongtanaws@gmail.com",
+  # CDO02 — chủ trì diễn tập resilience Mandate 17. Không có quyền vào Grafana thì
+  # phải xem SLO qua `kubectl port-forward`, tức là người chạy drill lại phụ thuộc
+  # đúng đường mạng mà drill có thể làm gãy. Leader đã duyệt 30/07/2026.
+  "tainguyenduc2004@gmail.com",
   # Mentors — SSO access tới Grafana/Jaeger/ArgoCD UI qua Cloudflare Zero Trust (REL-17).
   "nghia.huynh@techxcorp.com",
   "toan.le@techxcorp.com",
