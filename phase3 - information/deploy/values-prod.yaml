@@ -497,8 +497,8 @@ components:
       failureThreshold: 3
     replicas: 2
     imageOverride: # CDO02 fix HealthCheckService.cs - xem comment imageOverride đầu components:
-      digest: sha256:b6c7b60dec137dfe54f7fdc82b340421661aedbeed6ed34cd55f2ae29916508a
-      tag: 3252f28-29655310361-cart
+      digest: sha256:cbc62a4f46d9da3e30ab69786030bafe8eb7abebe36395ecde949bd10780db5e
+      tag: 8e40f3e-30570814403-cart
     resources:
       requests:
         cpu: 100m

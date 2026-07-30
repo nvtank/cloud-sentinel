@@ -125,7 +125,48 @@ bộ `node_*` / `container_*` / cadvisor trên cả cluster. Metric ứng dụng
 | Node biến mất / quay lại | ❌ **không có trong Prometheus** → `kubectl get nodes -w`, EC2 console |
 | CPU/memory theo container | ❌ không có → `kubectl top` (metrics-server), hoặc bỏ qua |
 
-### 2.5. Không phụ thuộc một nguồn bằng chứng duy nhất
+### 2.5. `topologySpreadConstraints` KHÔNG giữ pod ở đúng chỗ — nó trôi sau mỗi rollout
+
+Phát hiện 31/07 khi chuẩn bị bắn lại. `frontend` và `frontend-proxy` mỗi cái có **2/2 replica
+nằm trọn trong 1c**, dù cấu hình hoàn toàn đúng và đang chạy live:
+
+```json
+{ "topologyKey": "topology.kubernetes.io/zone",
+  "minDomains": 2, "maxSkew": 1, "whenUnsatisfiable": "DoNotSchedule",
+  "nodeAffinityPolicy": "Honor", "nodeTaintsPolicy": "Honor",
+  "labelSelector": { "matchLabels": { "opentelemetry.io/name": "frontend" } } }
+```
+
+Node arm64+elastic ở 1a (`ip-10-0-5-127`) chỉ mang đúng 2 taint mà frontend đã tolerate,
+nên nó **là domain hợp lệ**. Ràng buộc không hề bị vi phạm.
+
+**Vì sao vẫn lệch:** `topologySpreadConstraints` chỉ được đánh giá **tại thời điểm lập lịch**,
+không có cơ chế kéo pod về sau. `frontend` có 11 ReplicaSet, `frontend-proxy` có 12 — image bump
+liên tục. Trong rolling update, scheduler đếm cả pod cũ, nên pod mới vào 1c vẫn hợp lệ lúc đó;
+pod cũ ở 1a chết đi và không ai bù lại. Cụm hội tụ dần về một AZ **mà không vi phạm gì**.
+
+Đây là kiểu lỗi nguy hiểm nhất cho bài nghiệm thu: đọc manifest thấy đúng, `kubectl describe`
+cũng đúng, chỉ có thực tế là sai. **Không bao giờ kết luận phân bố AZ từ manifest — phải đếm pod.**
+
+**Kiểm (script `-Phase before` đã tự làm, mục "SERVICE CHỈ NẰM TRONG ĐÚNG 1 AZ"):**
+```bash
+kubectl -n techx-tf3 get pods -o wide | grep -E 'frontend|cart|checkout|payment'
+```
+
+**Sửa ngay, không cần PR** (placement không nằm trong Git nên ArgoCD `selfHeal` không revert):
+```bash
+kubectl -n techx-tf3 delete pod <một-pod-của-deployment-bị-dồn>
+```
+Xoá 1 pod là đủ: đặt lại vào AZ đang dồn sẽ cho skew = 2 > maxSkew 1, nên scheduler **buộc**
+phải chọn AZ còn trống. Làm lần lượt từng deployment và kiểm lại sau mỗi lần.
+
+**Giới hạn phải nói thẳng trong report:** cân bằng bằng tay sẽ **trôi lại** sau vài lần image
+bump. Đây là trạng thái đúng *tại thời điểm diễn tập*, không phải bảo đảm vĩnh viễn.
+Hướng xử lý triệt để là **descheduler** với policy `RemovePodsViolatingTopologySpreadConstraint`
+— mở thành `REL-17-07`, chưa làm vì TF3 đang vượt ngân sách và thêm component vào tuần cuối
+là rủi ro không cần thiết.
+
+### 2.6. Không phụ thuộc một nguồn bằng chứng duy nhất
 
 Xếp theo khả năng sống sót — **luôn chạy cả 3**:
 
@@ -339,6 +380,10 @@ FIS `aws:network:disrupt-connectivity` cắt traffic vào/ra AZ đúng như sự
 - **Không có metric tầng node/container.** `netpol/prometheus-access` thiếu egress 10250
   làm 29/34 scrape target chết (§2.4); bằng chứng node lấy từ `kubectl`/EC2 console.
   Đã chuyển finding cho CDO-01.
+- **Phân bố AZ được cân bằng bằng tay ngay trước bài, không phải trạng thái tự giữ.**
+  `frontend` và `frontend-proxy` từng dồn 2/2 vào 1c do rollout drift (§2.5); đã rải lại
+  1a+1c trước khi bắn. Sau vài lần image bump nó sẽ trôi lại. Fix triệt để = descheduler,
+  mở thành `REL-17-07`.
 - **8 workload nằm trọn trong 1b và sẽ chết trong lúc bắn** (đo 30/07): `ad`,
   `recommendation`, `image-provider`, `fraud-detection`, `llm`, `jaeger`, `opensearch`,
   `aiops-engine`. Đây là **kết quả dự kiến, không phải sự cố**:

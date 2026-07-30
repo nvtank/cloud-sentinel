@@ -1,5 +1,5 @@
 ﻿# Điều kiện tiên quyết: alarm stop-condition phải OK
-# phase=before  utc=20260730-163059
+# phase=before  utc=20260730-175720
 ------------------------------------------------------------------------
 {
     "Name": "tf3-fis-stop-storefront-5xx",
