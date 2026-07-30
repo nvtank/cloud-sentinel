@@ -65,7 +65,13 @@ metadata:
     mandate-19.techx.io/evidence: "docs/evidence/mandate-19/real-2026-07-30/"
 spec:
   scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: frontend }
-  minReplicas: 2
+  # REL-21 (Mandate-21): 2 -> 3. topologySpread zone (maxSkew=1 DoNotSchedule) chỉ áp
+  # LÚC SCHEDULE; K8s KHÔNG rebalance khi HPA scale-down. Với min=2, một lần scale-down
+  # xoá đúng pod ở AZ thiểu số -> cả 2 replica dồn 1 AZ (đã thấy 30/07: 2/2 ở 1c). Mất
+  # AZ đó là storefront sập. Với elastic chỉ ở 2 AZ (1a+1c), min=3 luôn rải 2+1 (3+0 vi
+  # phạm maxSkew nên không xảy ra) -> mất bất kỳ AZ nào vẫn còn >=1 replica, kể cả sau
+  # scale-down. Fix gốc rễ (descheduler / elastic AZ thứ 3) theo dõi riêng.
+  minReplicas: 3
   maxReplicas: 16
   metrics:
     - type: Resource
