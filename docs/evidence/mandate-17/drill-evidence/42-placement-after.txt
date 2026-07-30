@@ -1,5 +1,5 @@
 ﻿# EV-02 phân bố replica theo AZ (mục tiêu: mọi service ra tiền có >=1 replica NGOÀI ap-southeast-1b)
-# phase=before  utc=20260730-175720
+# phase=after  utc=20260730-180505
 ------------------------------------------------------------------------
 ##### SERVICE CHỈ NẰM TRONG ĐÚNG 1 AZ — mất AZ đó là chết hẳn #####
 
@@ -31,7 +31,7 @@ aiops-engine                         1 ap-southeast-1b                          
 cart                                 2 ap-southeast-1a,ap-southeast-1c                                 0       2 ok    
 checkout                             2 ap-southeast-1a,ap-southeast-1c                                 0       2 ok    
 cloudflared                          2 ap-southeast-1a,ap-southeast-1c                                 0       2 ok    
-currency                             2 ap-southeast-1a,ap-southeast-1c                                 0       2 ok    
+currency                             5 ap-southeast-1a,ap-southeast-1c                                 0       5 ok    
 email                                2 ap-southeast-1a,ap-southeast-1b                                 1       1 ok    
 flagd                                1 ap-southeast-1c                                                 0       1 ok    
 fraud-detection                      1 ap-southeast-1b                                                 1       0 ALL...

@@ -1,5 +1,5 @@
 ﻿# EV-02 phân bố replica theo AZ (mục tiêu: mọi service ra tiền có >=1 replica NGOÀI ap-southeast-1b)
-# phase=before  utc=20260730-175720
+# phase=during  utc=20260730-180347
 ------------------------------------------------------------------------
 ##### SERVICE CHỈ NẰM TRONG ĐÚNG 1 AZ — mất AZ đó là chết hẳn #####
 

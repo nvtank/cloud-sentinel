@@ -1,5 +1,5 @@
-﻿# EV-08 baseline: NACL dang gan vao subnet muc tieu
-# phase=before  utc=20260730-175720
+﻿# EV-08 NACL da tra nguyen trang (so voi 05-nacl-baseline-before.txt)
+# phase=after  utc=20260730-180505
 ------------------------------------------------------------------------
 subnet=subnet-045de0d768b5c49f1
 {
@@ -27,7 +27,7 @@ subnet=subnet-045de0d768b5c49f1
                     "SubnetId": "subnet-0a56de94943c45499"
                 },
                 {
-                    "NetworkAclAssociationId": "aclassoc-004e9623be04760f8",
+                    "NetworkAclAssociationId": "aclassoc-05e771041710572c5",
                     "NetworkAclId": "acl-0c7e1cead7edbc9f3",
                     "SubnetId": "subnet-045de0d768b5c49f1"
                 },

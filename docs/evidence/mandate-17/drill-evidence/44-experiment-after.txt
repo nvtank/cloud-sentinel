@@ -1,11 +1,16 @@
-﻿# EV-04 template FIS (target, action, stop condition)
-# phase=before  utc=20260730-175720
+﻿# EV-04 trang thai experiment FIS
+# phase=after  utc=20260730-180505
 ------------------------------------------------------------------------
 {
-    "experimentTemplate": {
-        "id": "EXT9JSZivevPf3Hoe",
-        "arn": "arn:aws:fis:ap-southeast-1:197826770971:experiment-template/EXT9JSZivevPf3Hoe",
-        "description": "Mandate 17 req#2 � disrupt connectivity for one AZ and prove the revenue path keeps serving.",
+    "experiment": {
+        "id": "EXPJazdMDpevoHeDJr",
+        "arn": "arn:aws:fis:ap-southeast-1:197826770971:experiment/EXPJazdMDpevoHeDJr",
+        "experimentTemplateId": "EXT9JSZivevPf3Hoe",
+        "roleArn": "arn:aws:iam::197826770971:role/tf3-fis-experiment",
+        "state": {
+            "status": "completed",
+            "reason": "Experiment completed."
+        },
         "targets": {
             "target-az-subnet": {
                 "resourceType": "aws:ec2:subnet",
@@ -25,7 +30,13 @@
                 },
                 "targets": {
                     "Subnets": "target-az-subnet"
-                }
+                },
+                "state": {
+                    "status": "completed",
+                    "reason": "Action was completed."
+                },
+                "startTime": "2026-07-31T00:59:47.956000+07:00",
+                "endTime": "2026-07-31T01:04:48.611000+07:00"
             }
         },
         "stopConditions": [
@@ -34,19 +45,16 @@
                 "value": "arn:aws:cloudwatch:ap-southeast-1:197826770971:alarm:tf3-fis-stop-storefront-5xx"
             }
         ],
-        "creationTime": "2026-07-30T20:09:36.865000+07:00",
-        "lastUpdateTime": "2026-07-31T00:10:09.433000+07:00",
-        "roleArn": "arn:aws:iam::197826770971:role/tf3-fis-experiment",
+        "creationTime": "2026-07-31T00:59:33.837000+07:00",
+        "startTime": "2026-07-31T00:59:34.133000+07:00",
+        "endTime": "2026-07-31T01:04:49.092000+07:00",
         "tags": {
-            "project": "techx-corp-phase3",
-            "mandate": "mandate-17",
-            "team": "TF3",
-            "managed-by": "terraform",
-            "Name": "tf3-m17-az-connectivity-loss"
+            "Name": "m17-az1b-final"
         },
         "experimentOptions": {
             "accountTargeting": "single-account",
-            "emptyTargetResolutionMode": "fail"
+            "emptyTargetResolutionMode": "fail",
+            "actionsMode": "run-all"
         }
     }
 }
