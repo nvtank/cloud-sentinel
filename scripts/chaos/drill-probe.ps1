@@ -27,6 +27,11 @@ param(
   [string]$OutFile = "$PSScriptRoot\..\..\docs\evidence\mandate-17\drill-evidence\10-external-probe.log"
 )
 
+# .NET giữ current-directory RIÊNG, không theo `cd` của PowerShell. Nếu để $OutFile
+# tương đối, StreamWriter sẽ ghi vào một chỗ khác (hoặc fail) và $writer thành null —
+# probe chết ngay dòng đầu, đúng lúc cần nó nhất. Ép tuyệt đối trước khi làm gì khác.
+$OutFile = [System.IO.Path]::GetFullPath(
+  [System.IO.Path]::Combine((Get-Location -PSProvider FileSystem).ProviderPath, $OutFile))
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutFile) | Out-Null
 
 $header = @(
