@@ -9,7 +9,7 @@
 **Video vùng trần (arm tuned3):** [`tuned3-ceiling-video/timelapse.gif`](evidence/mandate-19/real-2026-07-30/tuned3-ceiling-video/timelapse.gif)
 **Postmortem kèm:** [0017 — product-catalog về 0 replica](postmortem/0017-product-catalog-replicas-zero-hpa-cannot-recover.md)
 **Harness tái lập:** [`scripts/mandate-19/`](../scripts/mandate-19/)
-**📖 Bản tóm tắt dễ đọc (ảnh + video nhúng):** [`mandate-19-bao-cao-tom-tat.md`](mandate-19-bao-cao-tom-tat.md)
+**📖 Bản tóm tắt dễ đọc (ảnh + video nhúng):** [`mandate-19-nghiem-thu.md`](mandate-19-nghiem-thu.md)
 
 > **Bản này thay thế hoàn toàn báo cáo cũ.** Số liệu cũ (trần "174,75 RPS @ 328 user")
 > đã bị loại — lý do ở §2. Mọi con số dưới đây có artifact thô đi kèm và tái lập được
@@ -267,17 +267,23 @@ khi một backend quá tải thì chỉ phần frontend ghim vào nó bị ảnh
 `round_robin` xoá cách ly đó: mọi frontend dùng chung toàn bộ backend, nên khi backend chạm
 trần thì **mọi** request cùng chịu. Đổi lại là dung lượng được dùng hết — thấy rõ ở +29% RPS.
 
-Lỗi còn lại là `DEADLINE_EXCEEDED after 1.200s` trên `/api/products/[id]`, dồn thành từng burst
-~8 giây **ngay trước mỗi lần HPA scale-up**:
+Lỗi còn lại dồn thành từng cụm ngắn (8–170 giây tuỳ stage) rồi tự tắt, trong khi tài nguyên tại
+thời điểm đó **còn thừa nhiều** — ở u1000: `frontend-hpa cpu 79%/65%` mới 10/16 replica,
+`product-catalog-hpa cpu 61%/65%` mới 8/12, tức **dưới cả ngưỡng scale**. Đây không phải dấu hiệu
+cạn dung lượng.
 
-| Burst lỗi | HPA scale-up |
-|---|---|
-| 09:22:27 → 09:22:35 | **09:22:56** (3→4) |
-| 09:28:51 → 09:28:58 | **09:29:11** (4→5) |
+> ⚠️ **Đính chính:** bản trước của mục này suy luận *"pod bão hoà → sinh lỗi → ~25s sau HPA thêm
+> pod → lỗi dừng"*. Chuỗi nhân quả đó tự mâu thuẫn với chính số liệu: cụm lỗi ở stage u400 **tắt
+> lúc 09:22:35**, còn HPA scale-up mãi **09:22:56** — lỗi đã hết **21 giây trước** khi có pod mới,
+> nên pod mới không thể là thứ chữa nó.
 
-Tức pod hiện có bão hoà, đuôi vượt deadline, rồi ~25 giây sau HPA mới thêm pod. Đây là hệ quả
-*đúng* của việc sửa phân bố — HPA giờ nhận tín hiệu thật thay vì trung bình bị pha loãng bởi
-8 pod rỗng — nhưng nó phơi ra độ trễ phản ứng.
+**Nguyên nhân đúng:** `round_robin` được ship **không kèm `retryPolicy`** (xem `grpcChannel.ts` —
+service config chỉ có `loadBalancingConfig`, không có `methodConfig`). Với `pick_first` cũ, một
+pod bị thay chỉ ảnh hưởng client đang ghim vào nó; với `round_robin`, **mọi** client đều dính một
+phần. `dns_min_time_between_resolutions_ms: 5000` nghĩa là sau khi một pod biến mất, client còn
+gửi vào địa chỉ chết tới 5 giây — khớp đúng độ dài cụm lỗi 8 giây ở u400. Không có `retryPolicy`,
+mỗi lần như vậy là lỗi 500 tới thẳng người dùng. Chi tiết và kế hoạch vá:
+[`mandate-19-ke-hoach-yc2.md`](mandate-19-ke-hoach-yc2.md).
 
 ### 6.5. Trần thật sự bị chặn bởi cái gì — đã xác định
 

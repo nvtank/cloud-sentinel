@@ -191,7 +191,7 @@ Auditability là trụ chung. Nếu người dùng nói "trụ của mình"/"tea
     (`techx-corp-bootstrap`) revert. `replicas: 0` trong values KHÔNG dùng (template `default` coi 0 là rỗng).
 - **Mandate #19 (biết trần & nâng trần bằng hiệu suất)** — 🟢🟢🟢🟡 **3/4 YC** (CDO01, đo 30/07).
   Báo cáo đầy đủ `docs/mandate-19-throughput-ceiling-report.md`, **bản tóm tắt có ảnh/video nhúng**
-  `docs/mandate-19-bao-cao-tom-tat.md`, ADR `docs/adr/0011-mandate-19-throughput-ceiling-load-shedding.md`,
+  `docs/mandate-19-nghiem-thu.md`, ADR `docs/adr/0011-mandate-19-throughput-ceiling-load-shedding.md`,
   evidence `docs/evidence/mandate-19/real-2026-07-30/`. PR #649/#651/#656/#658/#660/#664 (code+tuning),
   #662 (báo cáo+ADR), #671 (tóm tắt).
   - **Trần thật = 1000 user / 202,4 RPS** (~3× con số cũ 328u/174,75 RPS đã bị loại — bài đo cũ để node
