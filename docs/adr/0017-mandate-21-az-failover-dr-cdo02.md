@@ -59,7 +59,7 @@ xác nhận **0 money-path single-AZ**. Đây là điều kiện cần để m�
 |---|---|
 | Gỡ endpoint pod AZ chết khỏi Service | ✅ tự động (readiness + kube-proxy/endpoints) |
 | Reschedule pod sang AZ lành | ✅ tự động (scheduler + topologySpread; HPA scale theo tải) |
-| RDS failover primary → secondary | ✅ tự động (Multi-AZ) |
+| RDS failover primary → secondary | 🟡 **tự động khi AWS phát hiện AZ hỏng thật** (mất điện/hardware); 🔶 **cần runbook trigger** khi chỉ là network-partition (NACL/FIS) — xem "Kết quả drill" + quyết định posture dưới |
 | ElastiCache failover | ✅ tự động (AutomaticFailover enabled) |
 | Traffic khách dồn sang AZ lành | ✅ tự động (CloudFront → ALB → Envoy; cloudflared có replica đa AZ) |
 | **Failback** RDS primary về AZ gốc sau khi AZ hồi | 🔶 runbook — có chủ đích làm ngoài giờ, không bắt buộc để giữ SLO |
@@ -132,3 +132,12 @@ Hai lần bắn FIS `disrupt-connectivity` vào private-1c, đo bằng vòng cur
   trigger RDS failover **sớm** (ngay khi fault ăn vào) để rút cửa sổ 5xx.
 
 Runbook cập nhật bước force-failover: [`mandate-21-az-failover-drill.md`](../runbooks/mandate-21-az-failover-drill.md).
+
+**Quyết định posture cho ca RDS network-partition (đã cân nhắc, chọn có chủ đích):**
+Chấp nhận ranh giới AWS — **RDS Multi-AZ instance chỉ tự failover khi AWS phát hiện AZ hỏng thật**. Với
+network-partition thuần (RDS còn "healthy" dưới mắt AWS), **thao tác người theo runbook** trigger failover
+(`reboot-db-instance --force-failover`), đo được trong RTO cam kết (~2–3 phút gồm cả thời gian phát hiện).
+Không chọn watchdog tự-failover (rủi ro flap, độ phức tạp không tương xứng) hay migrate Aurora (việc lớn)
+ở phạm vi mandate này. Đánh đổi minh bạch: **ca AZ chết thật đạt full tự động; ca partition thuần phụ
+thuộc trực vận hành + runbook** — chấp nhận vì partition-thuần-mà-AWS-không-thấy là hiếm và đã có đường xử
+đo được. Xem lại nếu nâng bar hoặc chuyển Aurora.
