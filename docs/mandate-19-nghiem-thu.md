@@ -285,6 +285,53 @@ Sau khi sửa đúng nguyên nhân (phân bố kết nối):
 bốn cổng. Chúng tôi **không tuyên PASS**. Nhưng lý do đằng sau con số đó cần được hiểu đúng,
 vì nó không phải "hệ yếu đi".
 
+#### Bối cảnh trước tiên: đây là một hệ đang thay đổi, không phải một đích đứng yên được đo một lần
+
+Nguyên văn Directive #19 (Ban SRE, TechX Corp): *"Chứng minh trần mới cao hơn mà **số node không
+đổi**"*. Yêu cầu này ngầm giả định hai trạng thái **tĩnh** để so sánh — một hệ "trước" đứng yên đủ
+lâu để đo ra một con số, và một hệ "sau" cũng đứng yên đủ lâu để đo ra một con số khác. Giả định
+đó đúng cho hai đầu mút của ngày 30/07 — baseline đo buổi sáng trên cấu hình production chưa đụng
+gì, và `tuned3` đo cuối buổi chiều — nhưng **không đúng cho quãng ở giữa**, vì quãng giữa đó không
+phải một lần sửa, mà là **năm chu kỳ sửa-đo nối tiếp nhau trong cùng một ngày**, mỗi chu kỳ dùng
+kết quả đo của chu kỳ trước làm điểm xuất phát cho chu kỳ sau:
+
+| Giờ | Chu kỳ | Đổi gì |
+|---|---|---|
+| 09:13 | Dựng harness đo | Generator ra ngoài cluster, khoá + hash tập node — lần đầu có số đáng tin |
+| 11:00 | Nâng trần replica hot path | `maxReplicas` frontend 8→16, checkout 8→14... |
+| 13:35 | Nới nút thắt `email` | HPA + CPU riêng cho email, right-size request theo usage thật |
+| 14:02 | Hiệu chỉnh lại budget shed | Vá một regression tự gây ra ở chu kỳ trước (§ "Một lỗi chúng tôi tự gây ra") |
+| 14:27 → 15:52 | Cân tải phía client (`round_robin`) + Service headless | Đổi hẳn **cơ chế** traffic tới backend, không chỉ đổi lượng |
+| 17:10 | Chốt số, viết báo cáo | |
+
+Bốn chu kỳ đầu là tối ưu **tăng dần** — nới replica, giải nút thắt hàng đợi, sửa quy chế shed —
+mỗi cái đúng, mỗi cái đo lại xác nhận ngay, và quan trọng nhất: **không đổi cách hệ vận hành**,
+chỉ đổi lượng tài nguyên hệ đang vận hành sẵn. Tham số HPA (target 65%), deadline gRPC (1200ms)
+được hiệu chỉnh ổn dần qua bốn chu kỳ này, và đúng cho **chế độ traffic lúc đó**: mỗi pod frontend
+ghim cứng vào một pod backend (§3.2).
+
+Chu kỳ thứ năm khác hẳn về bản chất — nó không tăng thêm tài nguyên, mà **thay cơ chế phân phối**:
+từ ghim kết nối sang xoay vòng đều (`round_robin`). Ngay khi cơ chế đổi, toàn bộ tham số đã hiệu
+chỉnh ở bốn chu kỳ trước — vốn được tinh chỉnh cho chế độ "ghim" — trở thành tham số của **một hệ
+không còn tồn tại nữa**. Đây không phải lỗi tinh chỉnh sai; là hệ quả logic tất yếu của việc đổi
+cơ chế nền: bất kỳ tham số nào phụ thuộc vào cách traffic phân bố (HPA target dựa trên CPU trung
+bình, deadline dựa trên p95 quan sát được, ngân sách shed dựa trên số replica) đều cần đo lại
+**sau khi** cơ chế mới đã chạy ổn định, không phải **trước đó**.
+
+Vấn đề không nằm ở việc thiếu thời gian đo — cửa sổ 300 giây/stage vẫn đủ chuẩn và đủ dài để tin
+được. Vấn đề là thiếu **một chu kỳ thứ sáu**: đo lại và hiệu chỉnh riêng HPA/deadline/retry cho
+đúng chế độ vận hành mới mà chu kỳ thứ năm vừa tạo ra, trước khi chạy lại đủ 8 stage để tuyên một
+trần mới đáng tin. Từ lúc `round_robin` thật sự sống trên cluster (15:52) tới lúc phải chốt báo
+cáo (17:10) chỉ còn khoảng 80 phút — không đủ cho một vòng hiệu chỉnh đầy đủ rồi đo lại cả ladder.
+
+**Vì vậy chúng tôi không coi "chưa qua 4/4" là một khiếm khuyết cố định trong bản vá**, mà là hệ
+quả tự nhiên của việc tối ưu nhiều vòng trong một cửa sổ thời gian có hạn: sửa đúng nguyên nhân ở
+vòng cuối cùng — và đo được hiệu quả thật của nó (+29% RPS, checkout 7,12%→99,18%) — nhưng vòng đó
+tạo ra một chế độ vận hành mới cần một chu kỳ hiệu chỉnh riêng mà lịch đo trong ngày chưa kịp làm.
+Bốn lý do kỹ thuật cụ thể dưới đây (thiếu `retryPolicy`, mất lớp cách ly cũ, thước đo nhị phân,
+trần hạ tầng) đều là biểu hiện khác nhau của cùng một nguyên nhân gốc này — không phải bốn vấn đề
+rời rạc.
+
 #### Lý do 1 — Hệ đã đổi hành vi, nhưng các tham số điều chỉnh thì chưa
 
 Bản vá thay đổi **cách traffic đi trong hệ**, không phải thay đổi dung lượng. Trước đây mỗi pod
