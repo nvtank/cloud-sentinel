@@ -22,6 +22,7 @@ on:
           - pm18-a1-vpc-endpoints
           - shopping-copilot
           - m17-fis
+          - cloudflare-access
       allow_bastion_replacement:
         description: Explicitly acknowledge a reviewed shared-bastion replacement
         required: true
@@ -138,6 +139,15 @@ jobs:
                 -target=aws_iam_role_policy_attachment.fis_ec2
                 -target=aws_cloudwatch_metric_alarm.fis_storefront_5xx
                 -target=aws_fis_experiment_template.az_connectivity_loss
+              )
+              ;;
+            cloudflare-access)
+              # Chỉ danh sách Cloudflare Zero Trust: thêm/bớt người được vào các UI nội bộ
+              # (Grafana, Jaeger, ArgoCD, Copilot). Tách khỏi scope shopping-copilot vì
+              # scope đó còn kéo theo IRSA Bedrock của copilot — không liên quan gì tới
+              # việc cấp quyền truy cập cho người.
+              target_args=(
+                -target=module.cloudflare_access
               )
               ;;
             *)
