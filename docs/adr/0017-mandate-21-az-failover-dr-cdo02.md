@@ -4,7 +4,7 @@
 **Người quyết định (ký):** Huu Tai Ngo — CDO02 (Reliability + Cost Optimization)
 **Directive:** `MANDATE-21-dr-failover.md` — mất 1 AZ đột ngột dưới tải, khách gần như không hay biết
 **Tiên quyết:** Mandate #20 (backup + PITR restore drill) — ĐÃ ĐẠT (ADR 0016, evidence 2026-07-29)
-**Trạng thái:** Thiết kế chốt + GAP 1 đã sửa; drill FIS 1c chờ chạy để xác nhận số RTO/RPO đo được
+**Trạng thái:** Thiết kế chốt; GAP 1 + REL-17-07 đã sửa & deploy; **drill FIS 1c ĐÃ CHẠY 31/07 dưới tải** — RTO/RPO đo được ở mục "Kết quả drill" (RPO=0; RTO browse/cart ≤60s, đường DB ≤3ph; RDS cần runbook failover cho network-partition)
 **Tham chiếu:** runbook [`docs/runbooks/mandate-21-az-failover-drill.md`](../runbooks/mandate-21-az-failover-drill.md) · [`mandate-17-fis-az-drill.md`](../runbooks/mandate-17-fis-az-drill.md) · script `scripts/ops/az-spread-check.py`, `scripts/ops/az-drill-measure.py`
 
 ## Bối cảnh
@@ -59,7 +59,7 @@ xác nhận **0 money-path single-AZ**. Đây là điều kiện cần để m�
 |---|---|
 | Gỡ endpoint pod AZ chết khỏi Service | ✅ tự động (readiness + kube-proxy/endpoints) |
 | Reschedule pod sang AZ lành | ✅ tự động (scheduler + topologySpread; HPA scale theo tải) |
-| RDS failover primary → secondary | ✅ tự động (Multi-AZ) |
+| RDS failover primary → secondary | 🟡 **tự động khi AWS phát hiện AZ hỏng thật** (mất điện/hardware); 🔶 **cần runbook trigger** khi chỉ là network-partition (NACL/FIS) — xem "Kết quả drill" + quyết định posture dưới |
 | ElastiCache failover | ✅ tự động (AutomaticFailover enabled) |
 | Traffic khách dồn sang AZ lành | ✅ tự động (CloudFront → ALB → Envoy; cloudflared có replica đa AZ) |
 | **Failback** RDS primary về AZ gốc sau khi AZ hồi | 🔶 runbook — có chủ đích làm ngoài giờ, không bắt buộc để giữ SLO |
@@ -98,6 +98,46 @@ xác nhận **0 money-path single-AZ**. Đây là điều kiện cần để m�
   failover) + trình bày phân tích 1a; (c) phối hợp CDO01 đóng GAP 2 (node elastic ở 1b) nếu muốn 3-AZ compute;
   (d) (dài hạn) NAT + SSM endpoint đa AZ nếu nâng bar chịu 1a ngang 1b/1c.
 
-## Kết quả drill
+## Kết quả drill (31/07/2026, dưới tải ~2,7 checkout/s, FIS 1c)
 
-_Chờ chạy drill FIS 1c dưới tải — cập nhật RTO/RPO đo được, link evidence `docs/evidence/mandate-21/` vào đây._
+Hai lần bắn FIS `disrupt-connectivity` vào private-1c, đo bằng vòng curl ngoài cluster (3 path độc lập)
++ `az-drill-measure.py`. Evidence thô: `docs/evidence/mandate-21/run1/`, `run2/`.
+
+**Run 1 — chỉ FIS NACL (T0 01:54:05Z):**
+- **Cart hồi ~52s** (503→200). ElastiCache **tự failover** primary 1c→1b; cart reconnect nhanh nhờ
+  **REL-17-07** (KeepAlive 5s thay 180s) — trước bản vá là 70s+. ✅
+- **RDS KHÔNG tự failover** dưới NACL partition → product-catalog/checkout (đọc/ghi RDS-1c) 5xx suốt fault.
+- Stop-alarm ALB 5xx **tự abort** (~T+4ph) — phanh an toàn hoạt động đúng.
+
+**Run 2 — FIS NACL + `reboot-db-instance --force-failover` (T0 02:07:16Z, trigger failover 02:08:17Z):**
+- **RDS primary ĐỔI 1c→1b** — event "Multi-AZ failover completed" 02:09:13Z (~56s), verify
+  `describe-db-instances`: primary `ap-southeast-1b`, secondary 1c. Đây là bằng chứng directive đòi.
+- **RTO đo được (từ lúc fault ăn vào 02:07:32Z):** browse `/` **~37s**; `/api/cart` **~0** (EC primary
+  đã ở 1b từ run1); `/api/products` + checkout (đường RDS) **~2–3 phút**, chặn bởi failover RDS (56s) +
+  app reconnect. **Money path hồi hoàn toàn LÚC 1c VẪN đang blackhole** → chứng minh mọi phụ thuộc đã
+  rời 1c (frontend@1a + ElastiCache@1b + RDS@1b).
+- **RPO = 0**: RDS Multi-AZ replicate đồng bộ → không đơn đã commit nào mất qua failover.
+- Sau fault: NACL trả nguyên trạng, 8/8 node Ready, money-path AZ-spread `0 single-AZ`, store `available`.
+
+**Finding chốt (cập nhật cam kết RTO ở trên):**
+- **ElastiCache tự failover** trên network partition ✅. **RDS Multi-AZ (instance) KHÔNG tự failover khi
+  chỉ mất kết nối do NACL** — AWS health-check nội bộ không coi NACL của khách là AZ failure. **AZ chết
+  thật (mất điện/hardware) thì AWS tự trigger failover**; còn network-partition-thuần cần **runbook trigger
+  tay** (`reboot-db-instance --force-failover`). ⇒ RTO đường DB khi mất 1 AZ:
+  **tự động ~2–3 phút** (AWS phát hiện + failover) cho AZ chết thật; **cần thao tác runbook** cho partition.
+- Cam kết cuối: **RPO=0**; **RTO browse/cart ≤ 60s**, **RTO đường DB (checkout/products) ≤ 3 phút**
+  (failover-bound). Khớp target thiết kế.
+- **Cảnh báo vận hành**: stop-alarm ALB 5xx (ngưỡng 5/60s) **abort cả hai lần** trong cửa sổ RDS-failover —
+  đúng thiết kế an toàn, nhưng khi drill có chủ đích cần nới ngưỡng/thời lượng để chạy trọn PT5M, hoặc
+  trigger RDS failover **sớm** (ngay khi fault ăn vào) để rút cửa sổ 5xx.
+
+Runbook cập nhật bước force-failover: [`mandate-21-az-failover-drill.md`](../runbooks/mandate-21-az-failover-drill.md).
+
+**Quyết định posture cho ca RDS network-partition (đã cân nhắc, chọn có chủ đích):**
+Chấp nhận ranh giới AWS — **RDS Multi-AZ instance chỉ tự failover khi AWS phát hiện AZ hỏng thật**. Với
+network-partition thuần (RDS còn "healthy" dưới mắt AWS), **thao tác người theo runbook** trigger failover
+(`reboot-db-instance --force-failover`), đo được trong RTO cam kết (~2–3 phút gồm cả thời gian phát hiện).
+Không chọn watchdog tự-failover (rủi ro flap, độ phức tạp không tương xứng) hay migrate Aurora (việc lớn)
+ở phạm vi mandate này. Đánh đổi minh bạch: **ca AZ chết thật đạt full tự động; ca partition thuần phụ
+thuộc trực vận hành + runbook** — chấp nhận vì partition-thuần-mà-AWS-không-thấy là hiếm và đã có đường xử
+đo được. Xem lại nếu nâng bar hoặc chuyển Aurora.
