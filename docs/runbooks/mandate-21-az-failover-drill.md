@@ -133,6 +133,23 @@ echo "EXPERIMENT_ID=$EXP"   # dán ngay vào Terminal C
 ```
 Ghi **giờ UTC chính xác lúc bắn**. Mọi mốc sau đối chiếu theo nó.
 
+### 5.1. ⚠️ RDS KHÔNG tự failover dưới NACL partition — phải trigger tay (đo drill 31/07)
+
+FIS `disrupt-connectivity` blackhole subnet bằng NACL. **ElastiCache tự failover** trên cú này (cart hồi
+~52s nhờ REL-17-07). Nhưng **RDS Multi-AZ (instance) KHÔNG tự failover** — AWS health-check nội bộ không
+coi NACL của khách là AZ failure, nên product-catalog/checkout (đọc/ghi RDS-1c) 5xx suốt fault → stop-alarm
+tự abort. **AZ chết thật (mất điện/hardware) thì AWS tự trigger**; drill NACL thì phải mô phỏng bằng tay,
+**ngay khi fault ăn vào (~T+40s)** để rút cửa sổ 5xx trước khi stop-alarm bắt:
+```sh
+aws rds reboot-db-instance --db-instance-identifier techx-tf3-postgres --force-failover \
+  --region ap-southeast-1
+# RDS failover ~56s; verify primary đổi AZ:
+aws rds describe-db-instances --region ap-southeast-1 \
+  --query "DBInstances[?DBInstanceIdentifier=='techx-tf3-postgres'].{az:AvailabilityZone,sec:SecondaryAvailabilityZone}" --output text
+```
+> ⚠️ `describe-db-instances` có thể **lag** hiển thị AZ cũ vài phút sau failover. Bằng chứng tin cậy hơn:
+> `/api/products` hồi 200 **khi 1c vẫn blackhole** = DB đã rời 1c. Xem event `Multi-AZ failover completed`.
+
 **Trong 5 phút, cần thấy:**
 | Mốc | Kỳ vọng |
 |---|---|
