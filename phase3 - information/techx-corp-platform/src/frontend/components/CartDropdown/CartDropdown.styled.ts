@@ -7,40 +7,37 @@ import Button from '../Button';
 
 export const CartDropdown = styled.div`
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  padding: 5px;
+  inset: 0;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
+  align-items: stretch;
+  gap: 22px;
+  padding: 24px 20px;
   background: ${({ theme }) => theme.colors.white};
-  z-index: 1000;
-  border-radius: 5px;
-  box-shadow: 0 2px 2px 0 rgb(0 0 0 / 14%), 0 3px 1px -2px rgb(0 0 0 / 12%), 0 1px 5px 0 rgb(0 0 0 / 20%);
+  box-shadow: 0 28px 70px rgba(8, 20, 34, 0.2);
 
   ${({ theme }) => theme.breakpoints.desktop} {
     position: absolute;
-    width: 400px;
-    top: 95px;
-    right: 17px;
-    max-height: 600px;
+    inset: auto 24px auto auto;
+    top: 105px;
+    width: 420px;
+    max-height: 650px;
+    padding: 24px;
+    border: 1px solid rgba(21, 34, 53, 0.08);
+    border-radius: 20px;
   }
 `;
 
 export const Title = styled.h5`
-  margin: 0px;
-  font-size: ${({ theme }) => theme.sizes.mxLarge};
-
-  ${({ theme }) => theme.breakpoints.desktop} {
-    font-size: ${({ theme }) => theme.sizes.dLarge};
-  }
+  margin: 0;
+  font-size: 24px;
 `;
 
 export const ItemList = styled.div`
+  display: grid;
+  gap: 4px;
+
   ${({ theme }) => theme.breakpoints.desktop} {
     max-height: 450px;
     overflow-y: auto;
@@ -49,37 +46,46 @@ export const ItemList = styled.div`
 
 export const Item = styled.div`
   display: grid;
-  grid-template-columns: 29% 59%;
-  gap: 2%;
-  padding: 25px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.textLightGray};
+  grid-template-columns: 86px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.lightBorderGray};
 `;
 
 export const ItemImage = styled(Image).attrs({
-  width: '80',
-  height: '80',
+  width: '86',
+  height: '86',
 })`
-  border-radius: 5px;
+  padding: 8px;
+  border-radius: 14px;
+  background: ${({ theme }) => theme.colors.backgroundGray};
   object-fit: contain;
 `;
 
 export const ItemName = styled.p`
-  margin: 0px;
-  font-size: ${({ theme }) => theme.sizes.mLarge};
-  font-weight: ${({ theme }) => theme.fonts.regular};
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
 `;
 
 export const ItemDetails = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
+  justify-content: center;
 `;
 
 export const ItemQuantity = styled(ItemName)`
-  font-size: ${({ theme }) => theme.sizes.mMedium};
+  color: ${({ theme }) => theme.colors.textLightGray};
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
 `;
 
-export const CartButton = styled(Button)``;
+export const CartButton = styled(Button)`
+  width: 100%;
+`;
 
 export const ContentWrapper = styled.div`
   width: 100%;
@@ -90,19 +96,22 @@ export const ContentWrapper = styled.div`
   ${({ theme }) => theme.breakpoints.desktop} {
     overflow-y: visible;
     flex: 0 1 auto;
-    min-height: auto;
   }
 `;
 
 export const Header = styled.div`
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding-bottom: 16px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.lightBorderGray};
 
   span {
-    position: absolute;
-    right: 25px;
+    color: ${({ theme }) => theme.colors.otelBlue};
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   ${({ theme }) => theme.breakpoints.desktop} {
@@ -113,9 +122,9 @@ export const Header = styled.div`
 `;
 
 export const EmptyCart = styled.h3`
-  margin: 0;
-  margin-top: 25px;
-  font-size: ${({ theme }) => theme.sizes.mLarge};
+  margin: 48px 0;
   color: ${({ theme }) => theme.colors.textLightGray};
+  font-size: 16px;
+  font-weight: 500;
   text-align: center;
 `;

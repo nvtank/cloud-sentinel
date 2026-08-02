@@ -42,21 +42,31 @@ const ProductCard = ({
     };
     const image_url ='/images/products/' + picture
     const requestInfo = new Request(image_url, requestInit);
+    let objectUrl = '';
     getImageWithHeaders(requestInfo).then(blob => {
-      setImageSrc(URL.createObjectURL(blob));
+      objectUrl = URL.createObjectURL(blob);
+      setImageSrc(objectUrl);
     });
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [imageSlowLoad, picture]);
 
   return (
     <S.Link href={`/product/${id}`}>
       <S.ProductCard data-cy={CypressFields.ProductCard}>
-        <S.Image $src={imageSrc} />
-        <div>
+        <S.ImageWrap>
+          <S.CardBadge>Field pick</S.CardBadge>
+          <S.Image $src={imageSrc} />
+          <S.Explore>View details <span>↗</span></S.Explore>
+        </S.ImageWrap>
+        <S.CardBody>
           <S.ProductName>{name}</S.ProductName>
           <S.ProductPrice>
             <ProductPrice price={priceUsd} />
           </S.ProductPrice>
-        </div>
+        </S.CardBody>
       </S.ProductCard>
     </S.Link>
   );

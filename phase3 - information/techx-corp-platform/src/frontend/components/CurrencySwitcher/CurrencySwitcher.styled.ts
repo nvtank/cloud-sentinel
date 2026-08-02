@@ -9,30 +9,27 @@ export const CurrencySwitcher = styled.div`
 `;
 
 export const Container = styled.div`
+  position: relative;
   display: flex;
   align-items: center;
-  position: relative;
-  margin-left: 40px;
-  color: #605f64;
-
-  &::-webkit-input-placeholder,
-  &::-moz-placeholder,
-  :-ms-input-placeholder,
-  :-moz-placeholder {
-    font-size: 12px;
-    color: #605f64;
-  }
 `;
 
 export const SelectedConcurrency = styled.span`
-  font-size: ${({ theme }) => theme.sizes.mLarge};
-  text-align: center;
-  font-weight: ${({ theme }) => theme.fonts.regular};
+  position: absolute;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: ${({ theme }) => theme.colors.textLightGray};
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
 
-  position: relative;
-  left: 35px;
-  width: 20px;
-  display: inline-block;
+  span {
+    color: ${({ theme }) => theme.colors.textGray};
+    font-size: 11px;
+  }
 `;
 
 export const Arrow = styled.img.attrs({
@@ -40,26 +37,30 @@ export const Arrow = styled.img.attrs({
   alt: 'arrow',
 })`
   position: absolute;
-  right: 15px;
-  width: 12px;
-  height: 17px;
+  right: 10px;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
 `;
 
 export const Select = styled.select`
-  -webkit-appearance: none;
-  -webkit-border-radius: 0px;
-  font-size: ${({ theme }) => theme.sizes.mLarge};
+  width: 104px;
+  height: 40px;
+  padding: 0 25px 0 32px;
+  border: 1px solid ${({ theme }) => theme.colors.lightBorderGray};
+  border-radius: 999px;
+  color: transparent;
+  background: ${({ theme }) => theme.colors.white};
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 
-  display: flex;
-  align-items: center;
-  background: transparent;
-  font-weight: ${({ theme }) => theme.fonts.regular};
-  border: 1px solid ${({ theme }) => theme.colors.borderGray};
-  width: 130px;
-  height: 40px;
-  flex-shrink: 0;
-  padding: 1px 0 0 45px;
-  font-size: 16px;
-  border-radius: 10px;
+  option {
+    color: ${({ theme }) => theme.colors.textGray};
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(232, 100, 54, 0.18);
+    border-color: ${({ theme }) => theme.colors.otelBlue};
+  }
 `;

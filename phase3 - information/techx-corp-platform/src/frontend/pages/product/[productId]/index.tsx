@@ -68,33 +68,44 @@ const ProductDetail: NextPage = () => {
       contextKeys={[...new Set(categories)]}
     >
       <Head>
-        <title>Otel Demo - Product</title>
+        <title>{name ? `${name} | TechX` : 'Product | TechX'}</title>
       </Head>
       <Layout>
         <S.ProductDetail data-cy={CypressFields.ProductDetail}>
           <S.Container>
             <S.Image $src={"/images/products/" + picture} data-cy={CypressFields.ProductPicture} />
             <S.Details>
+              <S.Eyebrow>TechX field collection</S.Eyebrow>
               <S.Name data-cy={CypressFields.ProductName}>{name}</S.Name>
               <S.Description data-cy={CypressFields.ProductDescription}>{description}</S.Description>
               <S.ProductPrice>
                 <ProductPrice price={priceUsd} />
               </S.ProductPrice>
-              <S.Text>Quantity</S.Text>
-              <Select
-                data-cy={CypressFields.ProductQuantity}
-                onChange={event => setQuantity(+event.target.value)}
-                value={quantity}
-              >
-                {quantityOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </Select>
-              <S.AddToCart data-cy={CypressFields.ProductAddToCart} onClick={onAddItem}>
-                <Image src="/icons/Cart.svg" height="15" width="15" alt="cart" /> Add To Cart
-              </S.AddToCart>
+              <S.Divider />
+              <S.PurchaseRow>
+                <S.Quantity>
+                  <S.Text>Quantity</S.Text>
+                  <Select
+                    data-cy={CypressFields.ProductQuantity}
+                    onChange={event => setQuantity(+event.target.value)}
+                    value={quantity}
+                  >
+                    {quantityOptions.map(option => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </Select>
+                </S.Quantity>
+                <S.AddToCart data-cy={CypressFields.ProductAddToCart} onClick={onAddItem}>
+                  <Image src="/icons/Cart.svg" height="17" width="17" alt="cart" /> Add to cart
+                </S.AddToCart>
+              </S.PurchaseRow>
+              <S.Benefits>
+                <span>✓ Secure checkout</span>
+                <span>✓ Expert-selected equipment</span>
+                <span>✓ Carefully packed for delivery</span>
+              </S.Benefits>
             </S.Details>
           </S.Container>
           {productId && (

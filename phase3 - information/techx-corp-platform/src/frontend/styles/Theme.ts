@@ -5,15 +5,15 @@ import { DefaultTheme } from 'styled-components';
 
 const Theme: DefaultTheme = {
   colors: {
-    otelBlue: '#5262A8',
-    otelYellow: '#EAAA3B',
-    otelGray: '#403F4B',
-    otelRed: '#FB7181',
-    backgroundGray: 'rgba(64, 63, 75, 0.1)',
-    lightBorderGray: 'rgba(82, 98, 168, 0.3)',
-    borderGray: '#2E2437',
-    textGray: '#29293E',
-    textLightGray: '#78788C',
+    otelBlue: '#E86436',
+    otelYellow: '#F2B84B',
+    otelGray: '#101C2C',
+    otelRed: '#D94F4F',
+    backgroundGray: '#F2F5F7',
+    lightBorderGray: '#DDE4EA',
+    borderGray: '#C8D1DA',
+    textGray: '#152235',
+    textLightGray: '#677386',
     white: '#FFFFFF',
   },
   breakpoints: {
@@ -31,10 +31,10 @@ const Theme: DefaultTheme = {
     nano: '8px',
   },
   fonts: {
-    bold: '800',
-    regular: '500',
-    semiBold: '700',
-    light: '400',
+    bold: '700',
+    regular: '400',
+    semiBold: '600',
+    light: '300',
   },
 };
 

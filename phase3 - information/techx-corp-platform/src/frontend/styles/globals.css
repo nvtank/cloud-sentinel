@@ -12,20 +12,57 @@
 /* See the License for the specific language governing permissions and */
 /* limitations under the License. */
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: white;
-  margin: 0px;
-  font-family: 'Open Sans', sans-serif;
+  background: #f7f8f9;
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  color: #152235;
+  -webkit-font-smoothing: antialiased;
 }
 
 body * {
   box-sizing: border-box;
-  color: #29293E;
-  font-weight: 600;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.035em;
+}
+
+a,
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+select {
+  touch-action: manipulation;
+}
+
+::selection {
+  color: #ffffff;
+  background: #e86436;
 }
 
 #__next {
@@ -36,9 +73,10 @@ body * {
 
 main {
   flex: 1 0 auto;
+  overflow: hidden;
 }
 
 select {
   -webkit-appearance: none;
-  -webkit-border-radius: 0px;
+  -webkit-border-radius: 0;
 }

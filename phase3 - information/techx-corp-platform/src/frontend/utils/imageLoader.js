@@ -16,5 +16,6 @@ if (typeof window !== "undefined" && window.location) {
 
 export default function imageLoader({ src, width, quality }) {
   // We pass down the optimisation request to the image-provider service here, without this, nextJs would try to use internal optimiser which is not working with the external image-provider.
-  return `${protocol}://${hostname}:${port}/${src}?w=${width}&q=${quality || 75}`
+  const normalizedSrc = src.replace(/^\/+/, "");
+  return `${protocol}://${hostname}:${port}/${normalizedSrc}?w=${width}&q=${quality || 75}`
 }

@@ -4,56 +4,79 @@
 import styled from 'styled-components';
 import Button from '../Button';
 
-export const CheckoutForm = styled.form``;
+export const CheckoutForm = styled.form`
+  position: relative;
+`;
 
 export const StateRow = styled.div`
   display: grid;
-  grid-template-columns: 35% 55%;
-  gap: 10%;
+  grid-template-columns: 1fr;
+  gap: 0;
+
+  ${({ theme }) => theme.breakpoints.desktop} {
+    grid-template-columns: 0.72fr 1.28fr;
+    gap: 14px;
+  }
 `;
 
 export const Title = styled.h1`
-  margin: 0;
-  margin-bottom: 24px;
+  margin: 0 0 24px;
+  font-size: 24px;
+
+  &:not(:first-child) {
+    margin-top: 16px;
+    padding-top: 28px;
+    border-top: 1px solid ${({ theme }) => theme.colors.lightBorderGray};
+  }
 `;
 
 export const CardRow = styled.div`
   display: grid;
-  grid-template-columns: 35% 35% 20%;
-  gap: 5%;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+
+  > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  ${({ theme }) => theme.breakpoints.desktop} {
+    grid-template-columns: 1fr 1fr 0.72fr;
+    gap: 12px;
+
+    > div:last-child {
+      grid-column: auto;
+    }
+  }
 `;
 
 export const SubmitContainer = styled.div`
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
   flex-direction: column-reverse;
+  gap: 12px;
+  margin-top: 22px;
+
+  a {
+    text-decoration: none;
+  }
 
   ${({ theme }) => theme.breakpoints.desktop} {
     flex-direction: row;
-    justify-content: end;
-    align-items: center;
-    margin-top: 67px;
+    justify-content: flex-end;
   }
 `;
 
 export const CartButton = styled(Button)`
-  padding: 16px 35px;
-  font-weight: ${({ theme }) => theme.fonts.regular};
   width: 100%;
 
   ${({ theme }) => theme.breakpoints.desktop} {
-    width: inherit;
+    width: auto;
   }
 `;
 
 export const EmptyCartButton = styled(Button)`
-  font-weight: ${({ theme }) => theme.fonts.regular};
-  color: ${({ theme }) => theme.colors.otelRed};
   width: 100%;
 
   ${({ theme }) => theme.breakpoints.desktop} {
-    width: inherit;
+    width: auto;
   }
 `;

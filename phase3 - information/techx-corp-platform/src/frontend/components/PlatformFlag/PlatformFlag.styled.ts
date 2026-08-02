@@ -7,19 +7,20 @@ export const Block = styled.div`
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 100px;
-  height: 27px;
+  width: auto;
+  height: 28px;
+  padding: 0 12px;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: ${({ theme }) => theme.sizes.mSmall};
   font-weight: ${({ theme }) => theme.fonts.regular};
   color: ${({ theme }) => theme.colors.white};
-  background: ${({ theme }) => theme.colors.otelYellow};
+  background: ${({ theme }) => theme.colors.otelBlue};
 
   ${({ theme }) => theme.breakpoints.desktop} {
-    width: 190px;
-    height: 50px;
-    font-size: ${({ theme }) => theme.sizes.dSmall};
+    width: auto;
+    height: 30px;
+    font-size: 11px;
   }
 `;

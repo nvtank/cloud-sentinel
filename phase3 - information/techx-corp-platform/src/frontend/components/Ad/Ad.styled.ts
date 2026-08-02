@@ -6,10 +6,11 @@ import RouterLink from 'next/link';
 
 export const Ad = styled.section`
   position: relative;
-  background-color: ${({ theme }) => theme.colors.otelYellow};
+  margin-top: 50px;
+  background: linear-gradient(120deg, #d9572d, ${({ theme }) => theme.colors.otelBlue});
   font-size: ${({ theme }) => theme.sizes.dMedium};
   text-align: center;
-  padding: 48px;
+  padding: 54px 24px;
 
   * {
     color: ${({ theme }) => theme.colors.white};

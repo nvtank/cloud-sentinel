@@ -20,15 +20,28 @@ const Footer = () => {
 
   return (
     <S.Footer>
-      <div>
-        <p>This website is hosted for demo purpose only. It is not an actual shop.</p>
-        <p>
-          <span data-cy={CypressFields.SessionId}>session-id: {sessionId}</span>
-        </p>
-      </div>
-      <p>
-        @ {currentYear} TechX Corp
-      </p>
+      <S.FooterMain>
+        <S.BrandColumn>
+          <S.FooterBrand><span>✦</span> TechX</S.FooterBrand>
+          <S.BrandStatement>Better tools for looking farther, learning more, and staying curious.</S.BrandStatement>
+        </S.BrandColumn>
+        <S.LinkColumn>
+          <strong>Explore</strong>
+          <a href="/#hot-products">Shop all</a>
+          <a href="/#hot-products">Best sellers</a>
+          <a href="/#our-standard">Our standard</a>
+        </S.LinkColumn>
+        <S.LinkColumn>
+          <strong>Experience</strong>
+          <span>Expert selected</span>
+          <span>AI shopping assistant</span>
+          <span>Secure checkout</span>
+        </S.LinkColumn>
+      </S.FooterMain>
+      <S.FooterBottom>
+        <span>© {currentYear} TechX Corp · Demonstration storefront</span>
+        <span data-cy={CypressFields.SessionId}>Session {sessionId}</span>
+      </S.FooterBottom>
       <PlatformFlag />
     </S.Footer>
   );

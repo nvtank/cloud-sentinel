@@ -36,7 +36,7 @@ const CopilotWidget = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Xin chào! Tôi là trợ lý mua sắm. Bạn cần tìm gì hôm nay?' },
+    { role: 'assistant', content: 'Hi! I am your TechX guide. What are you hoping to observe?' },
   ]);
   const [liveSteps, setLiveSteps] = useState<string[]>([]); // reasoning trace for the in-flight turn
   const userId = useRef<string>('');
@@ -117,13 +117,13 @@ const CopilotWidget = () => {
             if (payload.session_id) sessionId.current = String(payload.session_id);
             setMessages(m => [...m, {
               role: 'assistant',
-              content: normalizeText(payload.reply, 'Xin lỗi, tôi chưa có câu trả lời.'),
+              content: normalizeText(payload.reply, 'I do not have an answer for that yet.'),
               token: (payload.token as string) || null,
               trace: trace.slice(),
             }]);
             finished = true;
           } else if (evt === 'error') {
-            setMessages(m => [...m, { role: 'assistant', content: 'Dịch vụ tạm thời gặp lỗi, thử lại sau nhé.' }]);
+            setMessages(m => [...m, { role: 'assistant', content: 'The assistant hit a temporary issue. Please try again.' }]);
             finished = true;
           }
         }
@@ -133,7 +133,7 @@ const CopilotWidget = () => {
     } catch (e) {
       const reason = (e as Error).message;
       if (reason === 'rate_limited') {
-        setMessages(m => [...m, { role: 'assistant', content: 'Bạn thao tác hơi nhanh — vui lòng thử lại sau giây lát.' }]);
+        setMessages(m => [...m, { role: 'assistant', content: 'A few too many requests arrived at once. Please try again shortly.' }]);
       } else {
         // Fallback to the non-streaming endpoint so a stream hiccup still yields an answer.
         try {
@@ -141,14 +141,14 @@ const CopilotWidget = () => {
           if (r.session_id) sessionId.current = r.session_id;
           setMessages(m => [...m, {
             role: 'assistant',
-            content: normalizeText(r.reply, 'Xin lỗi, tôi chưa có câu trả lời.'),
+            content: normalizeText(r.reply, 'I do not have an answer for that yet.'),
             token: r.token || null,
             trace: Array.isArray(r.steps)
               ? r.steps.map((step: unknown) => normalizeText((step as { detail?: unknown })?.detail, '')).filter(Boolean)
               : undefined,
           }]);
         } catch {
-          setMessages(m => [...m, { role: 'assistant', content: 'Dịch vụ tạm thời không khả dụng, thử lại sau nhé.' }]);
+          setMessages(m => [...m, { role: 'assistant', content: 'The assistant is temporarily unavailable. Please try again.' }]);
         }
       }
     } finally {
@@ -161,9 +161,9 @@ const CopilotWidget = () => {
     setLoading(true);
     try {
       const r = await post('confirm', { session_id: sessionId.current, token, confirmed: true });
-      setMessages(m => [...m, { role: 'assistant', content: normalizeText(r.reply, 'Đã xử lý.') }]);
+      setMessages(m => [...m, { role: 'assistant', content: normalizeText(r.reply, 'Done.') }]);
     } catch {
-      setMessages(m => [...m, { role: 'assistant', content: 'Không xác nhận được, thử lại sau.' }]);
+      setMessages(m => [...m, { role: 'assistant', content: 'That could not be confirmed. Please try again.' }]);
     } finally {
       setLoading(false);
     }
@@ -171,67 +171,70 @@ const CopilotWidget = () => {
 
   if (!mounted) return null;
 
-  const accent = '#5a2a9e';
+  const accent = '#E86436';
+  const ink = '#101C2C';
 
   return (
     <div style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 1000, fontFamily: 'inherit' }}>
       {open && (
         <div
           style={{
-            width: 360,
+            width: 380,
             maxWidth: 'calc(100vw - 40px)',
-            height: 520,
+            height: 560,
             maxHeight: 'calc(100vh - 120px)',
             display: 'flex',
             flexDirection: 'column',
             background: '#fff',
-            borderRadius: 14,
-            boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+            border: '1px solid rgba(21,34,53,0.08)',
+            borderRadius: 24,
+            boxShadow: '0 26px 70px rgba(8,20,34,0.24)',
             overflow: 'hidden',
             marginBottom: 12,
           }}
         >
           <div
             style={{
-              background: accent,
+              background: ink,
               color: '#fff',
-              padding: '12px 16px',
+              padding: '16px 18px',
               fontWeight: 600,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
-            <span>Trợ lý mua sắm</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}><b style={{ color: '#F3C078' }}>✦</b> TechX field guide</span>
             <button
               onClick={() => setOpen(false)}
-              aria-label="Đóng"
+              aria-label="Close assistant"
               style={{ background: 'none', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
             >
               ×
             </button>
           </div>
-          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 14, background: '#f7f7fb' }}>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 16, background: '#f4f6f7' }}>
             {messages.map((m, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
                 <div
                   style={{
                     maxWidth: '80%',
                     padding: '9px 12px',
-                    borderRadius: 12,
+                    borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                     fontSize: 14,
                     lineHeight: 1.45,
                     background: m.role === 'user' ? accent : '#fff',
                     color: m.role === 'user' ? '#fff' : '#1a1a1a',
-                    border: m.role === 'user' ? 'none' : '1px solid #e5e5ef',
+                    boxShadow: m.role === 'user' ? 'none' : '0 6px 20px rgba(21,34,53,0.06)',
+                    border: m.role === 'user' ? 'none' : '1px solid #e2e7eb',
                   }}
                 >
                   {m.trace && m.trace.length > 0 && (
                     <details style={{ marginBottom: 6 }}>
                       <summary style={{ cursor: 'pointer', color: '#7a7a8c', fontSize: 12 }}>
-                        🧠 Quá trình xử lý ({m.trace.length} bước)
+                        How this was prepared ({m.trace.length} steps)
                       </summary>
                       <ol style={{ margin: '6px 0 0', paddingLeft: 18, color: '#7a7a8c', fontSize: 12, lineHeight: 1.5 }}>
                         {m.trace.map((t, j) => (
@@ -256,7 +259,7 @@ const CopilotWidget = () => {
                           fontSize: 13,
                         }}
                       >
-                        Xác nhận
+                        Confirm
                       </button>
                     </div>
                   )}
@@ -266,7 +269,7 @@ const CopilotWidget = () => {
             {loading && (
               <div style={{ color: '#7a7a8c', fontSize: 12.5, padding: '4px 6px', lineHeight: 1.6 }}>
                 {liveSteps.length === 0
-                  ? 'Đang soạn…'
+                  ? 'Preparing a recommendation…'
                   : liveSteps.map((s, i) => (
                       <div key={i} style={{ opacity: i === liveSteps.length - 1 ? 1 : 0.55 }}>
                         {i === liveSteps.length - 1 ? '⚙️ ' : '✓ '}{s}
@@ -275,14 +278,14 @@ const CopilotWidget = () => {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', padding: 10, borderTop: '1px solid #ececf3', background: '#fff' }}>
+          <div style={{ display: 'flex', padding: 12, borderTop: '1px solid #e4e9ed', background: '#fff' }}>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') send(); }}
-              placeholder="Nhập tin nhắn…"
+              placeholder="Ask about a product…"
               maxLength={1000}
-              style={{ flex: 1, border: '1px solid #ddd', borderRadius: 8, padding: '9px 11px', fontSize: 14, outline: 'none' }}
+              style={{ flex: 1, border: '1px solid #dce2e7', borderRadius: 12, padding: '11px 13px', fontSize: 14, outline: 'none' }}
             />
             <button
               onClick={send}
@@ -292,34 +295,34 @@ const CopilotWidget = () => {
                 background: accent,
                 color: '#fff',
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: 12,
                 padding: '0 16px',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
             >
-              Gửi
+              Send
             </button>
           </div>
         </div>
       )}
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label="Mở trợ lý mua sắm"
+        aria-label="Open shopping assistant"
         style={{
           width: 58,
           height: 58,
-          borderRadius: '50%',
-          background: accent,
+          borderRadius: 18,
+          background: ink,
           color: '#fff',
           border: 'none',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+          boxShadow: '0 14px 34px rgba(8,20,34,0.28)',
           cursor: 'pointer',
           fontSize: 26,
           float: 'right',
         }}
       >
-        {open ? '×' : '💬'}
+        {open ? '×' : '✦'}
       </button>
     </div>
   );
