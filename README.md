@@ -1,16 +1,18 @@
 <div align="center">
 
-# Cloud Sentinel
+# TF3 — Infra Sentinel
 
 ### Production operations, reliability engineering, and AI-powered commerce on AWS
 
-[![Secret scan](https://github.com/nvtank/cloud-sentinel/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/nvtank/cloud-sentinel/actions/workflows/secret-scan.yml)
-[![Secure delivery](https://github.com/nvtank/cloud-sentinel/actions/workflows/secure-delivery-gate.yml/badge.svg)](https://github.com/nvtank/cloud-sentinel/actions/workflows/secure-delivery-gate.yml)
-[![Terraform plan](https://github.com/nvtank/cloud-sentinel/actions/workflows/terraform-plan.yml/badge.svg)](https://github.com/nvtank/cloud-sentinel/actions/workflows/terraform-plan.yml)
+[![Secret scan](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/secret-scan.yml)
+[![Secure delivery](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/secure-delivery-gate.yml/badge.svg)](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/secure-delivery-gate.yml)
+[![Terraform plan](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/terraform-plan.yml/badge.svg)](https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel/actions/workflows/terraform-plan.yml)
 
-**Cloud Sentinel** is the shared engineering repository for TF3's takeover of the TechX Corp storefront. It brings together a polyglot microservice platform, AWS infrastructure, GitOps delivery, full-stack observability, AIOps, incident response, and production evidence in one auditable codebase.
+The shared engineering repository for TF3's takeover of the **TechX Corp** storefront — a polyglot
+microservice platform, AWS infrastructure, GitOps delivery, full-stack observability, AIOps,
+incident response, and production evidence in one auditable codebase.
 
-`Amazon EKS` · `Terraform` · `Argo CD` · `OpenTelemetry` · `Next.js` · `Amazon Bedrock`
+`Amazon EKS` · `Terraform` · `Argo CD` · `OpenTelemetry` · `Amazon Bedrock` · `Next.js`
 
 </div>
 
@@ -18,87 +20,176 @@
 
 ## The mission
 
-This project models the real work of taking ownership of a live customer-facing system: keep the storefront available, protect the checkout path, operate within a fixed cloud budget, respond to injected incidents, and improve the platform without bypassing its failure mechanisms.
+This project models the real work of taking ownership of a live customer-facing system: keep the
+storefront available, protect the checkout path, operate within a fixed cloud budget, respond to
+injected incidents, and improve the platform **without bypassing its failure mechanisms**.
 
-The team runs two workstreams in parallel:
+Two workstreams run in parallel:
 
-- **Operate:** on-call response, SLO management, incident containment, recovery drills, cost control, and service health reviews.
-- **Build:** infrastructure hardening, reliability and performance improvements, AIOps automation, and AI features for the storefront.
+- **Operate** — on-call response, SLO management, incident containment, recovery drills, cost
+  control, and service health reviews.
+- **Build** — infrastructure hardening, reliability and performance work, AIOps automation, and
+  AI features for the storefront.
 
-The source of truth for the engagement rules is [`phase3 - information/RULES.md`](./phase3%20-%20information/RULES.md). Customer commitments are defined in [`SLO.md`](./phase3%20-%20information/onboarding/SLO.md), and the cost constraint is documented in [`BUDGET.md`](./phase3%20-%20information/onboarding/BUDGET.md).
+Engagement rules live in [`phase3 - information/RULES.md`](./phase3%20-%20information/RULES.md).
+Customer commitments are in [`SLO.md`](./phase3%20-%20information/onboarding/SLO.md); the cost
+constraint is in [`BUDGET.md`](./phase3%20-%20information/onboarding/BUDGET.md).
 
 ## Architecture
 
-The production path runs from Cloudflare and CloudFront through an internal load balancer into a private Amazon EKS cluster spanning three Availability Zones. Stateful workloads use managed AWS services, while telemetry is collected through OpenTelemetry and surfaced in Grafana, Jaeger, Prometheus, and OpenSearch.
+Traffic runs from CloudFront through an internal load balancer into a **private** EKS cluster
+spanning three Availability Zones. Stateful workloads sit on managed AWS services; telemetry flows
+through OpenTelemetry into Prometheus, Grafana, Jaeger, and OpenSearch.
 
 <p align="center">
-  <img src="./docs/assets/readme/production-architecture.png" alt="Cloud Sentinel production architecture on AWS" width="100%" />
+  <img src="./docs/assets/readme/production-architecture.png" alt="Production architecture on AWS — edge delivery, private EKS across three Availability Zones, managed data services, and AWS control-plane integrations" width="100%" />
 </p>
 
-<p align="center"><sub>Production architecture — edge delivery, private EKS, managed data services, observability, and AWS control-plane integrations.</sub></p>
-
-The Kubernetes API is private-only. Engineers authenticate through IAM and establish an encrypted AWS Systems Manager tunnel to a bastion host; no public cluster endpoint or inbound SSH is required.
-
-<p align="center">
-  <img src="./docs/assets/readme/private-access-architecture.png" alt="Private EKS access through AWS Systems Manager and a bastion host" width="78%" />
-</p>
+<p align="center"><sub>Edge delivery through WAF and CloudFront · EKS node group spread across <code>ap-southeast-1a/1b/1c</code> · RDS, ElastiCache, and MSK replicated across zones · single NAT gateway, VPC endpoints, and a private bastion · IAM, CloudTrail, EventBridge, SNS, and SQS on the control plane.</sub></p>
 
 <details>
-<summary><strong>View the detailed SSM endpoint flow</strong></summary>
+<summary><strong>Request and delivery flow</strong> — how a customer request and a production change each move through the platform</summary>
 
 <br />
 
-<p align="center">
-  <img src="./docs/assets/readme/ssm-bastion-detail.png" alt="Detailed SSM endpoints and bastion connectivity" width="82%" />
-</p>
+```mermaid
+flowchart TB
+    subgraph EDGE["Edge"]
+        CF["CloudFront<br/><i>public storefront</i>"]
+        ZT["Cloudflare Zero Trust<br/><i>identity-aware ops access</i>"]
+    end
+
+    subgraph AWS["AWS · ap-southeast-1 · 3 Availability Zones"]
+        ALB["Internal ALB<br/><i>VPC origin</i>"]
+        ENVOY["frontend-proxy<br/><i>Envoy</i>"]
+
+        subgraph EKS["Private Amazon EKS"]
+            APP["~18 polyglot services<br/>Go · Python · .NET · Java · Kotlin<br/>Node · Rust · Ruby · PHP · C++"]
+            AI["AI services<br/><i>product-reviews · shopping-copilot · AIOps engine</i>"]
+            OBS["Observability<br/><i>OTel · Prometheus · Grafana · Jaeger · OpenSearch</i>"]
+        end
+
+        subgraph DATA["Managed data services"]
+            RDS[("RDS PostgreSQL<br/>Multi-AZ")]
+            EC[("ElastiCache Valkey<br/>Multi-AZ")]
+            MSK[("Amazon MSK<br/>3 brokers / 3 AZ")]
+        end
+
+        BR["Amazon Bedrock<br/><i>Nova Lite / Micro</i>"]
+        SSM["SSM bastion<br/><i>no public API, no inbound SSH</i>"]
+    end
+
+    ARGO["Argo CD<br/><i>App-of-Apps · self-heal · prune</i>"]
+    GH["GitHub Actions<br/><i>Trivy · Cosign · gitleaks · terraform</i>"]
+
+    CF --> ALB --> ENVOY --> APP
+    ZT --> OBS
+    ZT --> ARGO
+    APP --> RDS & EC & MSK
+    AI --> BR
+    AI --> RDS
+    APP -.telemetry.-> OBS
+    GH -->|"digest-pinned images"| ARGO
+    ARGO -->|"reconcile"| EKS
+    SSM -.-> EKS
+```
 
 </details>
 
-The editable diagrams.net source is available at [`docs/architecture/cloud-sentinel.drawio`](./docs/architecture/cloud-sentinel.drawio).
+### Private operations access
+
+The Kubernetes API is **private-only**. Engineers authenticate through IAM and open an encrypted
+AWS Systems Manager tunnel to a bastion host in a private subnet — there is no public cluster
+endpoint, no inbound SSH, and no open security group to the internet.
+
+<p align="center">
+  <img src="./docs/assets/readme/private-access-architecture.png" alt="Private EKS access — user assumes an IAM role, Session Manager reaches the bastion through ssm, ssmmessages, and ec2messages VPC endpoints" width="82%" />
+</p>
+
+<p align="center"><sub>An assumed IAM role authorises a Session Manager session, which reaches the bastion through the <code>ssm</code>, <code>ssmmessages</code>, and <code>ec2messages</code> VPC endpoints — the bastion never leaves the private subnet.</sub></p>
+
+Ops UIs (Grafana, Jaeger, Argo CD) are reached separately through Cloudflare Zero Trust SSO, so
+they stay off the public internet without requiring a tunnel. See
+[`docs/runbooks/private-access-to-ops-uis.md`](./docs/runbooks/private-access-to-ops-uis.md) and
+[`infra/ACCESS_GUIDE.md`](./infra/ACCESS_GUIDE.md).
 
 ## System at a glance
 
 | Layer | Core technologies | Responsibility |
 |---|---|---|
-| Edge and access | Cloudflare Zero Trust, CloudFront, AWS WAF, internal ALB, Envoy | Public storefront delivery and identity-aware private operations access |
-| Application | Next.js and approximately 18 Go, Python, .NET, Java, Kotlin, Node.js, Rust, Ruby, PHP, and C++ services | Product discovery, reviews, cart, checkout, payment, fulfillment, and supporting workflows |
-| AI | Amazon Bedrock, product-review service, shopping copilot, AIOps engine | Review intelligence, product assistance, anomaly detection, and diagnosis support |
-| Runtime | Amazon EKS, Helm, Argo CD, Argo Rollouts, Karpenter, Kyverno | Declarative deployment, policy enforcement, progressive delivery, and elastic capacity |
-| Data | Amazon RDS for PostgreSQL, ElastiCache, Amazon MSK, S3 | Durable commerce state, cart state, event streaming, and evidence storage |
-| Observability | OpenTelemetry, Prometheus, Grafana, Jaeger, OpenSearch | Metrics, SLOs, traces, logs, alerting, and incident investigation |
-| Infrastructure | Terraform, AWS KMS, IAM/IRSA, Systems Manager, GitHub Actions | Reproducible infrastructure, least-privilege access, secure automation, and auditability |
+| Edge and access | Cloudflare Zero Trust, CloudFront, internal ALB, Envoy | Public storefront delivery and identity-aware private ops access |
+| Application | Next.js plus ~18 Go, Python, .NET, Java, Kotlin, Node.js, Rust, Ruby, PHP, and C++ services | Product discovery, reviews, cart, checkout, payment, fulfillment |
+| AI | Amazon Bedrock, product-reviews, shopping copilot, AIOps engine | Review intelligence, product assistance, anomaly detection and diagnosis |
+| Runtime | Amazon EKS, Helm, Argo CD, Argo Rollouts, Karpenter, Kyverno | Declarative deployment, policy enforcement, progressive delivery, elastic capacity |
+| Data | RDS for PostgreSQL, ElastiCache, Amazon MSK, S3 | Durable commerce state, cart state, event streaming, evidence storage |
+| Observability | OpenTelemetry, Prometheus, Grafana, Jaeger, OpenSearch | Metrics, SLOs, traces, logs, alerting, incident investigation |
+| Infrastructure | Terraform, KMS, IAM/IRSA, Systems Manager, GitHub Actions | Reproducible infrastructure, least privilege, secure automation, auditability |
 
-The complete service map and request flows are documented in [`onboarding/ARCHITECTURE.md`](./phase3%20-%20information/onboarding/ARCHITECTURE.md).
+Full service map and request flows:
+[`onboarding/ARCHITECTURE.md`](./phase3%20-%20information/onboarding/ARCHITECTURE.md).
 
-## Key contributions
+## Results
 
-### Major contributions
+Every number below is measured on the running system and backed by an artifact in
+[`docs/evidence/`](./docs/evidence/).
 
-1. **Private, production-grade AWS foundation** — codified a multi-AZ EKS platform with encrypted resources, private control-plane access, dynamic SSM bastion tunnelling, and controlled edge ingress.
-2. **GitOps delivery and safe rollout control** — moved production ownership to Argo CD App-of-Apps, enabled reconciliation and drift recovery, and introduced progressive delivery with Argo Rollouts.
-3. **Managed datastore migration** — migrated PostgreSQL, Valkey, and Kafka workloads to Amazon RDS, ElastiCache, and Amazon MSK with explicit cutover, rollback, and evidence procedures.
-4. **Reliability engineering** — added topology spread, disruption protection, graceful shutdown, multi-AZ recovery exercises, fault-injection drills, and signed postmortems for production incidents.
-5. **Measured performance and overload protection** — established the real throughput ceiling, removed hot-path bottlenecks, tuned autoscaling, and added priority-aware load shedding to preserve cart and checkout traffic.
-6. **End-to-end observability and AIOps** — built SLO dashboards and OpenTelemetry pipelines, retained metrics/logs/traces, and developed an AIOps engine for anomaly detection, correlation, diagnosis, and operator notification.
-7. **AI in the product** — integrated Bedrock-backed review intelligence and product assistance, then added evaluation, safety, and operational controls around those customer-facing capabilities.
+| Outcome | Result |
+|---|---|
+| Datastore migration to managed AWS | **3 of 3** stores cut over — **zero data loss**, proven by row-count and checksum parity on a 70k-order ledger |
+| Datastore single point of failure | **Eliminated** — RDS Multi-AZ, ElastiCache Multi-AZ, MSK across 3 AZ |
+| Maintenance without downtime | Node drained mid-day with SLOs held: checkout **99.94%**, browse **100%**, p95 **68.6 ms** |
+| Flash-sale load test | 200 concurrent users / 17 min — checkout **99.98%**, p95 **46–48 ms**, no added nodes |
+| Non-compute cost | VPC endpoints **15 → 3 ENI** (~$142 → $28/mo), Prometheus series **233k → 83k (−64.5%)**, logs capped at 7 days |
+| Disaster recovery | RDS point-in-time restore drill executed end to end with measured RPO/RTO |
+| Delivery | 100% of production change through GitOps — Trivy-blocking + Cosign-signed, digest-pinned images |
 
-### Supporting contributions
+## What was built
 
-- Added Kyverno security policies, NetworkPolicies, secure pod defaults, immutable-image checks, and automated admission tests.
-- Built CI gates for secret scanning, SAST, infrastructure misconfiguration, dependency integrity, container scanning, and protected delivery.
-- Implemented cost dashboards, anomaly detection, capacity controls, right-sizing analysis, and ADR-backed cost decisions.
-- Added Cloudflare Zero Trust access for private operational tools without exposing Grafana, Jaeger, or Argo CD publicly.
-- Created reusable tunnel, preflight, health-check, chaos drill, load-test, evidence-capture, and rollout-validation scripts.
-- Maintained an auditable operating record through ADRs, incident postmortems, mandate reports, runbooks, test artifacts, and service-health evidence.
-- Improved the storefront experience across product discovery, product detail, cart, checkout, recommendations, reviews, and the shopping copilot.
+1. **Private, production-grade AWS foundation** — a multi-AZ EKS platform codified in Terraform,
+   with encrypted resources, private control-plane access, dynamic SSM bastion tunnelling, and
+   controlled edge ingress.
+2. **GitOps delivery and safe rollout control** — production ownership moved to Argo CD
+   App-of-Apps with reconciliation and drift recovery, plus progressive delivery via Argo Rollouts.
+3. **Managed datastore migration** — PostgreSQL, Valkey, and Kafka moved to RDS, ElastiCache, and
+   MSK behind env-gated cutovers, dual-write convergence, and a rollback path at every step.
+4. **Reliability engineering** — topology spread, disruption budgets, graceful shutdown, multi-AZ
+   recovery exercises, chaos drills, and signed postmortems for real production incidents.
+5. **Performance and overload protection** — the real throughput ceiling was measured, hot-path
+   bottlenecks removed, autoscaling tuned, and priority-aware load shedding added to protect cart
+   and checkout under overload.
+6. **Observability and AIOps** — SLO dashboards and OpenTelemetry pipelines, retention policy for
+   metrics/logs/traces, and an AIOps engine for anomaly detection, correlation, and diagnosis.
+7. **AI in the product** — Bedrock-backed review intelligence and a shopping copilot, with
+   evaluation, guardrails, and operational controls around the customer-facing surface.
+
+<details>
+<summary><strong>Supporting work</strong></summary>
+
+<br />
+
+- Kyverno security policies, NetworkPolicies, secure pod defaults, immutable-image checks, and
+  automated admission tests.
+- CI gates for secret scanning, SAST, infrastructure misconfiguration, dependency integrity,
+  container scanning, and protected delivery.
+- Cost dashboards, anomaly detection, capacity controls, right-sizing analysis, and ADR-backed
+  cost decisions.
+- Cloudflare Zero Trust for private operational tools — Grafana, Jaeger, and Argo CD stay off the
+  public internet.
+- Reusable tunnel, preflight, health-check, chaos drill, load-test, evidence-capture, and
+  rollout-validation scripts.
+- An auditable operating record: ADRs, postmortems, mandate reports, runbooks, and test artifacts.
+
+</details>
 
 ## Evidence, not just configuration
 
-Changes in this repository are backed by reproducible tests and captured runtime evidence. The examples below show the service-level dashboard used during load testing and a secure-delivery gate intentionally blocking a non-compliant pull request.
+Changes here are backed by reproducible tests and captured runtime evidence — the service-level
+dashboard used during load testing, and a delivery gate intentionally blocking a non-compliant
+pull request.
 
 <table>
   <tr>
-    <td width="58%"><img src="./docs/evidence/mandate-19/real-2026-07-30/tuned3/u400/grafana-slo.png" alt="Grafana SLO dashboard during performance testing" /></td>
+    <td width="58%"><img src="./docs/evidence/mandate-19/real-2026-07-30/baseline/u800/grafana-slo.png" alt="Grafana SLO dashboard during performance testing" /></td>
     <td width="42%"><img src="./docs/evidence/mandate-10/assets/pm-124-intentional-red-pr-blocked.png" alt="GitHub secure delivery checks blocking an invalid pull request" /></td>
   </tr>
   <tr>
@@ -107,12 +198,13 @@ Changes in this repository are backed by reproducible tests and captured runtime
   </tr>
 </table>
 
-Browse the full evidence library in [`docs/evidence/`](./docs/evidence/), the decision record in [`docs/adr/`](./docs/adr/), and incident learning in [`docs/postmortem/`](./docs/postmortem/).
+Browse the full library in [`docs/evidence/`](./docs/evidence/), decisions in
+[`docs/adr/`](./docs/adr/), and incident learning in [`docs/postmortem/`](./docs/postmortem/).
 
 ## Repository map
 
 ```text
-cloud-sentinel/
+Phase3-TF3-Infra-Sentinel/
 ├── aiops-engine/           # Detection, correlation, diagnosis, and notifications
 ├── chaos/                  # Controlled resilience experiments
 ├── docs/                   # ADRs, runbooks, postmortems, reports, and evidence
@@ -126,54 +218,69 @@ cloud-sentinel/
 
 ## Run the storefront locally
 
-### Prerequisites
-
-- Docker with the Compose plugin
-- Git
-- At least 6 GB of free memory for the complete local microservice stack
-
-### Start
+**Prerequisites** — Docker with the Compose plugin, Git, and at least 6 GB of free memory for the
+full local stack.
 
 ```bash
-git clone https://github.com/nvtank/cloud-sentinel.git
-cd cloud-sentinel/phase3\ -\ information/techx-corp-platform
+git clone https://github.com/tuu-ngo/Phase3-TF3-Infra-Sentinel.git
+cd "Phase3-TF3-Infra-Sentinel/phase3 - information/techx-corp-platform"
 docker compose up --force-recreate --remove-orphans --detach
 ```
 
-Open the storefront at [http://localhost:8080](http://localhost:8080). To stop the stack:
+The storefront comes up at [http://localhost:8080](http://localhost:8080). Stop it with
+`docker compose down`.
 
-```bash
-docker compose down
-```
-
-For platform onboarding and production access, follow [`GETTING_STARTED.md`](./phase3%20-%20information/GETTING_STARTED.md), [`infra/ACCESS_GUIDE.md`](./infra/ACCESS_GUIDE.md), and the repository tunnel helper:
+For platform onboarding and production access, follow
+[`GETTING_STARTED.md`](./phase3%20-%20information/GETTING_STARTED.md),
+[`infra/ACCESS_GUIDE.md`](./infra/ACCESS_GUIDE.md), and the tunnel helper:
 
 ```bash
 ./scripts/kube-tunnel.sh
 ```
 
-> Production changes are delivered through the protected `main` branch and reconciled by Argo CD. Do not use an ad-hoc Helm upgrade as a production deployment path.
+> Production changes are delivered through the protected `main` branch and reconciled by Argo CD.
+> An ad-hoc `helm upgrade` is **not** a production deployment path.
 
 ## Security expectations
 
-- Install the local secret-scanning hook after cloning: `bash scripts/setup-hooks.sh`.
-- Never commit AWS credentials, tokens, private keys, kubeconfig certificates, or real application secrets.
-- Store runtime credentials in the approved secret-management path and keep placeholders in tracked configuration.
-- Never disable or redirect the protected flagd/OpenFeature incident channel; resilience work must contain failures rather than remove the test mechanism.
-- Use a pull request, required review, and passing delivery gates for every production change.
+Two independent layers block secrets — AWS keys, private keys, tokens, bearer headers, kubeconfig
+certificates:
 
-See [`.gitleaks.toml`](./.gitleaks.toml), [`.trivy-secret.yaml`](./.trivy-secret.yaml), and the workflows in [`.github/workflows/`](./.github/workflows/) for the enforced controls.
+1. **Local pre-commit hook** (`gitleaks`) — stops the commit. Install once after cloning:
+   ```bash
+   bash scripts/setup-hooks.sh
+   ```
+2. **GitHub Actions CI** ([`secret-scan.yml`](./.github/workflows/secret-scan.yml)) — rescans every
+   push and pull request to `main`, independent of what any one machine has installed. This is the
+   real gate; the hook is just early feedback.
+
+Working rules:
+
+- Never put real values in tracked files. Keep placeholders in tracked configuration and pass
+  secrets at runtime via `--set`, an ignored `*.local.yaml`, `kubectl create secret`, or External
+  Secrets.
+- If gitleaks flags a false positive, add it to [`.gitleaks.toml`](./.gitleaks.toml) with a stated
+  reason — never `--no-verify`.
+- If a real secret is committed, **rotate it first**, then clean up. Deleting the line is not
+  enough; it stays in git history until purged.
+- Never disable or redirect the protected flagd/OpenFeature incident channel. Resilience work must
+  contain failures, not remove the mechanism that injects them.
+- Every production change goes through a pull request, required review, and passing delivery gates.
+
+Enforced controls: [`.gitleaks.toml`](./.gitleaks.toml),
+[`.trivy-secret.yaml`](./.trivy-secret.yaml), and
+[`.github/workflows/`](./.github/workflows/).
 
 ## Documentation index
 
 | Need | Start here |
 |---|---|
-| Understand the platform | [`Architecture`](./phase3%20-%20information/onboarding/ARCHITECTURE.md) · [`SLOs`](./phase3%20-%20information/onboarding/SLO.md) · [`Budget`](./phase3%20-%20information/onboarding/BUDGET.md) |
-| Access the private cluster | [`Access guide`](./infra/ACCESS_GUIDE.md) · [`Tunnel helper`](./scripts/kube-tunnel.sh) |
-| Review decisions | [`ADRs`](./docs/adr/) |
-| Respond to incidents | [`Runbooks`](./docs/runbooks/) · [`Postmortems`](./docs/postmortem/) |
-| Validate delivered work | [`Evidence`](./docs/evidence/) · [`Mandate reports`](./docs/) |
-| Work on the application | [`Platform source`](./phase3%20-%20information/techx-corp-platform/) · [`Helm chart`](./phase3%20-%20information/techx-corp-chart/) |
+| Understand the platform | [Architecture](./phase3%20-%20information/onboarding/ARCHITECTURE.md) · [SLOs](./phase3%20-%20information/onboarding/SLO.md) · [Budget](./phase3%20-%20information/onboarding/BUDGET.md) |
+| Access the private cluster | [Access guide](./infra/ACCESS_GUIDE.md) · [Tunnel helper](./scripts/kube-tunnel.sh) |
+| Review decisions | [ADRs](./docs/adr/) |
+| Respond to incidents | [Runbooks](./docs/runbooks/) · [Postmortems](./docs/postmortem/) |
+| Validate delivered work | [Evidence](./docs/evidence/) · [Mandate reports](./docs/) |
+| Work on the application | [Platform source](./phase3%20-%20information/techx-corp-platform/) · [Helm chart](./phase3%20-%20information/techx-corp-chart/) |
 
 ---
 
